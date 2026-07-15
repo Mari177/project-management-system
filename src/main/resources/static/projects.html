@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Projects - PMS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="main">
+            <div class="topbar" id="topbar"></div>
+
+            <section class="section" id="projectFormSection">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Create / Update Project</h2>
+                        <p class="section-subtitle">
+                            Create implementation projects. Support projects are normally created from completed implementation projects.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="projectForm">
+                    <input type="hidden" id="projectId">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Project Type</label>
+                            <select id="projectType" required onchange="toggleSupportFields()">
+                                <option value="IMPLEMENTATION">Implementation</option>
+                                <option value="SUPPORT">Support</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Linked Implementation Project</label>
+                            <select id="linkedImplementationProjectId">
+                                <option value="">Select Implementation Project</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Project Name</label>
+                            <input type="text" id="projectName" required placeholder="Loan Management System">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Client</label>
+                            <select id="clientId" required>
+                                <option value="">Select Client</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Country</label>
+                            <select id="country" required>
+                                <option value="">Select Country</option>
+                                <option value="INDIA">India</option>
+                                <option value="UAE">UAE</option>
+                                <option value="USA">USA</option>
+                                <option value="UK">UK</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Delivery Head</label>
+                            <select id="deliveryHeadUserId" required>
+                                <option value="">Select Delivery Head</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Delivery Manager</label>
+                            <select id="deliveryManagerUserId" required>
+                                <option value="">Select Delivery Manager</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>TL</label>
+                            <select id="tlUserId" required>
+                                <option value="">Select TL</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="NOT_STARTED">NOT_STARTED</option>
+                                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                                <option value="GO_LIVE">GO_LIVE</option>
+                                <option value="POST_LIVE">POST_LIVE</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                                <option value="MOVED_TO_SUPPORT">MOVED_TO_SUPPORT</option>
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="CLOSED">CLOSED</option>
+                                <option value="DELAYED">DELAYED</option>
+                                <option value="ON_HOLD">ON_HOLD</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Support Start Date</label>
+                            <input type="date" id="supportStartDate">
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Support End Date</label>
+                            <input type="date" id="supportEndDate">
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Support Contract Type</label>
+                            <select id="supportContractType">
+                                <option value="WARRANTY">Warranty</option>
+                                <option value="AMC">AMC</option>
+                                <option value="RETAINER">Retainer</option>
+                                <option value="TIME_AND_MATERIAL">Time and Material</option>
+                                <option value="MANAGED_SUPPORT">Managed Support</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Support Coverage</label>
+                            <select id="supportCoverage">
+                                <option value="8X5">8x5</option>
+                                <option value="12X5">12x5</option>
+                                <option value="24X7">24x7</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Billing Model</label>
+                            <select id="billingModel">
+                                <option value="INCLUDED_WARRANTY">Included Warranty</option>
+                                <option value="FIXED_MONTHLY">Fixed Monthly</option>
+                                <option value="HOURLY">Hourly</option>
+                                <option value="RETAINER">Retainer</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group support-field hidden">
+                            <label>Support Status</label>
+                            <select id="supportStatus">
+                                <option value="ACTIVE">Active</option>
+                                <option value="ON_HOLD">On Hold</option>
+                                <option value="CLOSED">Closed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit" id="saveProjectBtn">Save Project</button>
+                        <button class="btn btn-secondary" type="button" onclick="resetProjectForm()">Clear</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title" id="projectsListTitle">Projects List</h2>
+                        <p class="section-subtitle">
+                            Implementation projects use milestones. Support projects use tickets.
+                        </p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadProjects()">Refresh</button>
+                </div>
+
+                <div class="project-tab-bar">
+                    <button class="project-tab active" id="implementationTabBtn" type="button"
+                        onclick="setProjectTab('IMPLEMENTATION')">
+                        Implementation Projects
+                    </button>
+                    <button class="project-tab" id="supportTabBtn" type="button" onclick="setProjectTab('SUPPORT')">
+                        Support Projects
+                    </button>
+                </div>
+
+                <div id="implementationProjectsPanel" class="project-tab-panel">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Project Code</th>
+                                    <th>Project Name</th>
+                                    <th>Client</th>
+                                    <th>Country</th>
+                                    <th>Delivery Head</th>
+                                    <th>Delivery Manager</th>
+                                    <th>TL</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Status</th>
+                                    <th>Members</th>
+                                    <th id="projectActionHeader">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="implementationProjectsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="supportProjectsPanel" class="project-tab-panel hidden">
+                    <div class="table-wrapper support-project-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Support Code</th>
+                                    <th>Support Project</th>
+                                    <th>Client</th>
+                                    <th>Linked Implementation</th>
+                                    <th>Support Manager</th>
+                                    <th>Support TL</th>
+                                    <th>Contract</th>
+                                    <th>Coverage</th>
+                                    <th>Billing</th>
+                                    <th>Support End</th>
+                                    <th>Status</th>
+                                    <th>Members</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supportProjectsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" id="projectMembersSection">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title" id="projectMembersTitle">Project Members</h2>
+                        <p class="section-subtitle" id="projectMembersSubtitle">
+                            Select a project to view or manage allocated people.
+                        </p>
+                    </div>
+                    <button class="btn btn-secondary" type="button" onclick="reloadSelectedProjectMembers()">
+                        Refresh Members
+                    </button>
+                </div>
+
+                <div id="projectMemberFormWrapper">
+                    <form id="projectMemberForm">
+                        <input type="hidden" id="projectMemberId">
+                        <input type="hidden" id="memberProjectId">
+
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Person / Resource</label>
+                                <select id="memberResourceId" required>
+                                    <option value="">Select Resource</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Project Role</label>
+                                <select id="memberProjectRole" required>
+                                    <option value="">Select Project Role</option>
+                                    <option value="DELIVERY_OWNER">Delivery Owner</option>
+                                    <option value="PROJECT_MANAGER">Project Manager</option>
+                                    <option value="SUPPORT_MANAGER">Support Manager</option>
+                                    <option value="SUPPORT_ENGINEER">Support Engineer</option>
+                                    <option value="TECH_LEAD">Tech Lead</option>
+                                    <option value="BACKEND_DEVELOPER">Backend Developer</option>
+                                    <option value="FRONTEND_ENGINEER">Frontend Engineer</option>
+                                    <option value="QA_ENGINEER">QA Engineer</option>
+                                    <option value="BUSINESS_ANALYST">Business Analyst</option>
+                                    <option value="DEVOPS_ENGINEER">DevOps Engineer</option>
+                                    <option value="REVIEWER">Reviewer</option>
+                                    <option value="OBSERVER">Observer</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Allocation %</label>
+                                <input type="number" id="memberAllocationPercentage" min="1" max="100" step="1" value="100">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Start Date</label>
+                                <input type="date" id="memberStartDate">
+                            </div>
+
+                            <div class="form-group">
+                                <label>End Date</label>
+                                <input type="date" id="memberEndDate">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Billing</label>
+                                <select id="memberBillable">
+                                    <option value="true">Billable</option>
+                                    <option value="false">Non-Billable</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select id="memberActive">
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button class="btn btn-primary" type="submit" id="saveProjectMemberBtn">
+                                Add Member
+                            </button>
+                            <button class="btn btn-secondary" type="button" onclick="resetProjectMemberForm()">
+                                Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-wrapper" style="margin-top: 16px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Person</th>
+                                <th>Designation</th>
+                                <th>Project Role</th>
+                                <th>Allocation</th>
+                                <th>Billing</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Status</th>
+                                <th id="projectMemberActionHeader">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="projectMembersTable">
+                            <tr>
+                                <td colspan="10" class="empty-state">
+                                    Select a project to view members.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="moveToSupportModal" class="support-modal-overlay hidden" onclick="handleMoveToSupportBackdrop(event)">
+        <div class="support-modal-card" role="dialog" aria-modal="true">
+            <div class="support-modal-header">
+                <div>
+                    <h3 class="support-modal-title">Move Project to Support</h3>
+                    <div class="support-modal-subtitle" id="moveToSupportSubtitle">
+                        Create a linked support project from this implementation project.
+                    </div>
+                </div>
+                <button class="support-modal-close" type="button" onclick="closeMoveToSupportModal()">&times;</button>
+            </div>
+
+            <form id="moveToSupportForm" class="support-modal-body">
+                <input type="hidden" id="moveImplementationProjectId">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Support Start Date</label>
+                        <input type="date" id="moveSupportStartDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Support End Date</label>
+                        <input type="date" id="moveSupportEndDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Support Contract Type</label>
+                        <select id="moveSupportContractType">
+                            <option value="WARRANTY">Warranty</option>
+                            <option value="AMC">AMC</option>
+                            <option value="RETAINER">Retainer</option>
+                            <option value="TIME_AND_MATERIAL">Time and Material</option>
+                            <option value="MANAGED_SUPPORT">Managed Support</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Support Coverage</label>
+                        <select id="moveSupportCoverage">
+                            <option value="8X5">8x5</option>
+                            <option value="12X5">12x5</option>
+                            <option value="24X7">24x7</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Billing Model</label>
+                        <select id="moveBillingModel">
+                            <option value="INCLUDED_WARRANTY">Included Warranty</option>
+                            <option value="FIXED_MONTHLY">Fixed Monthly</option>
+                            <option value="HOURLY">Hourly</option>
+                            <option value="RETAINER">Retainer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" type="submit">Create Support Project</button>
+                    <button class="btn btn-secondary" type="button" onclick="closeMoveToSupportModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/projects.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,103 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+# Maven build output
+target/
+*.jar
+*.war
+*.ear
+
+# Java compiled files
+*.class
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Spring Tool Suite
+.springBeans
+.sts4-cache/
+
+# Environment variables and secret files
+.env
+.env.*
+!.env.example
+
+application-local.properties
+application-secrets.properties
+src/main/resources/application.properties
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.gz
+
+# Database backups
+*.dump
+*.backup
+*.bak
+*.sql.gz
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Frontend dependencies, if added later
+node_modules/
+
+# Test and coverage output
+coverage/
+test-results/
+surefire-reports/
+
+# Local Docker override files
+docker-compose.override.yml

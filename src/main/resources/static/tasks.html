@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tasks - PMS</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+
+        <main class="main">
+            <div class="topbar" id="topbar"></div>
+
+            <section class="section" id="taskFormSection">
+                <div class="section-header">
+                    <h2 class="section-title">Create / Update Task</h2>
+                </div>
+
+                <form id="taskForm">
+                    <input type="hidden" id="taskId">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Task Name</label>
+                            <input type="text" id="taskName" required placeholder="Enter short task name">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Task Type</label>
+                            <select id="taskType">
+                                <option value="Technical">Technical</option>
+                                <option value="Functional">Functional</option>
+                                <option value="QA">QA</option>
+                                <option value="Support">Support</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Project</label>
+                            <select id="projectId" required>
+                                <option value="">Select Project</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Milestone</label>
+                            <select id="milestoneId" required>
+                                <option value="">Select Milestone</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Assignee</label>
+                            <select id="resourceId" required>
+                                <option value="">Select Project First</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Allocated Hours</label>
+                            <input type="number" id="allocatedHours" min="0" step="0.5" value="0"
+                                placeholder="Planned effort in hours">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="status">
+                                <option value="NOT_STARTED">NOT_STARTED</option>
+                                <option value="IN_PROGRESS">IN_PROGRESS</option>
+                                <option value="COMPLETED">COMPLETED</option>
+                                <option value="DELAYED">DELAYED</option>
+                                <option value="BLOCKED">BLOCKED</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Priority</label>
+                            <select id="priority">
+                                <option value="LOW">LOW</option>
+                                <option value="MEDIUM">MEDIUM</option>
+                                <option value="HIGH">HIGH</option>
+                                <option value="CRITICAL">CRITICAL</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Completion %</label>
+                            <input type="number" id="progressPercentage" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Task Description</label>
+                        <textarea id="taskDescription" rows="3"
+                            placeholder="Enter detailed task description"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="escalated">
+                                Mark as Escalated
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="escalationFields" class="hidden">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Escalation Reason Type</label>
+                                <select id="escalationReasonType">
+                                    <option value="">Select Reason Type</option>
+                                    <option value="CLIENT_CLARIFICATION_PENDING">Client Clarification Pending</option>
+                                    <option value="REQUIREMENT_AMBIGUITY">Requirement Ambiguity</option>
+                                    <option value="RESOURCE_UNAVAILABLE">Resource Unavailable</option>
+                                    <option value="TECHNICAL_BLOCKER">Technical Blocker</option>
+                                    <option value="DEPENDENCY_DELAY">Dependency Delay</option>
+                                    <option value="ENVIRONMENT_ISSUE">Environment Issue</option>
+                                    <option value="DATA_MIGRATION_ISSUE">Data Migration Issue</option>
+                                    <option value="UAT_DEFECT_DELAY">UAT Defect Delay</option>
+                                    <option value="SCOPE_CHANGE">Scope Change</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Escalation Severity</label>
+                                <select id="escalationSeverity">
+                                    <option value="">Select Severity</option>
+                                    <option value="LOW">Low</option>
+                                    <option value="MEDIUM">Medium</option>
+                                    <option value="HIGH">High</option>
+                                    <option value="CRITICAL">Critical</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Escalation Status</label>
+                                <select id="escalationStatus">
+                                    <option value="">Select Status</option>
+                                    <option value="OPEN">Open</option>
+                                    <option value="RESOLVED">Resolved</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Escalation Date</label>
+                                <input type="date" id="escalationDate">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Escalation Reason</label>
+                            <textarea id="escalationReason" rows="3"
+                                placeholder="Enter detailed reason for escalation"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit" id="saveTaskBtn">Save Task</button>
+                        <button class="btn btn-secondary" type="button" onclick="resetTaskForm()">Clear</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Tasks List</h2>
+                    <button class="btn btn-secondary" onclick="loadTasks()">Refresh</button>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Task Code</th>
+                                <th>Task Name</th>
+                                <th>Type</th>
+                                <th>Project</th>
+                                <th>Assignee</th>
+                                <th>Assignee Location</th>
+                                <th>Start</th>
+                                <th>End</th>
+                                <th>Allocated Hours</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Priority</th>
+                                <th>Milestone</th>
+                                <th id="taskActionHeader">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksTable"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/tasks.js"></script>
+
+</body>
+
+</html>

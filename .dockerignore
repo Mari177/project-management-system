@@ -1,0 +1,13 @@
+target
+.git
+.github
+.idea
+.vscode
+*.iml
+*.log
+*.zip
+*.rar
+*.dump
+*.backup
+.env
+application.properties
