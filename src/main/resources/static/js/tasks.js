@@ -9,38 +9,85 @@ PMS.initLayout("tasks");
 }
 
 const currentUser = PMS.getUser();
-const canModifyTask = currentUser && ["ADMIN", "DELIVERY_MANAGER", "TL"].includes(currentUser.role);
-const canUpdateOwnProgress = currentUser && currentUser.role === "TEAM_MEMBER";
+
+const canModifyTask = currentUser &&
+    ["ADMIN", "DELIVERY_MANAGER", "TL"].includes(currentUser.role);
+
+const canUpdateOwnProgress = currentUser &&
+    currentUser.role === "TEAM_MEMBER";
+
 const canShowTaskActions = canModifyTask || canUpdateOwnProgress;
 
 const hideDetailedTaskColumnsForEmployee = PMS.isEmployee();
-const employeeHiddenTaskColumnIndexes = [3, 5, 6];
-// 3 = Type, 5 = Resource, 6 = Resource Location
 
-applyEmployeeTaskTableColumnRules();
+/*
+    Current task table columns:
 
-function applyEmployeeTaskTableColumnRules() {
-    if (!hideDetailedTaskColumnsForEmployee) {
-        return;
-    }
+    1  ID
+    2  Task Code
+    3  Task Name
+    4  Type
+    5  Project
+    6  Assignee
+    7  Assignee Location
+    8  Start
+    9  End
+    10 Allocated Hours
+    11 Status
+    12 Progress
+    13 Priority
+    14 Milestone
+    15 Action
 
+    For TEAM_MEMBER view, we hide:
+    4 = Type
+    6 = Assignee
+    7 = Assignee Location
+
+    We do NOT hide Task Name or Project.
+*/
+const employeeHiddenTaskColumnIndexes = [4, 6, 7];
+
+applyTaskTableColumnRules();
+
+function applyTaskTableColumnRules() {
     const taskTable = document.getElementById("tasksTable")?.closest("table");
 
     if (!taskTable) {
         return;
     }
 
-    employeeHiddenTaskColumnIndexes.forEach(columnIndex => {
-        const header = taskTable.querySelector(`thead th:nth-child(${columnIndex})`);
+    if (hideDetailedTaskColumnsForEmployee) {
+        employeeHiddenTaskColumnIndexes.forEach(columnIndex => {
+            const header = taskTable.querySelector(`thead th:nth-child(${columnIndex})`);
 
-        if (header) {
-            header.classList.add("hidden");
+            if (header) {
+                header.classList.add("hidden");
+            }
+        });
+    }
+
+    if (!canShowTaskActions) {
+        const actionHeader = document.getElementById("taskActionHeader");
+
+        if (actionHeader) {
+            actionHeader.classList.add("hidden");
         }
-    });
+    }
 }
 
 function getTaskTableColumnCount() {
-    return hideDetailedTaskColumnsForEmployee ? 11 : 14;
+    let columnCount = 15;
+
+    if (hideDetailedTaskColumnsForEmployee) {
+        columnCount -= employeeHiddenTaskColumnIndexes.length;
+    }
+
+    if (!canShowTaskActions) {
+        columnCount -= 1;
+    }
+
+    return columnCount;
 }
 
 let tasksCache = [];
