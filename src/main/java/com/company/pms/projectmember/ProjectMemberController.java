@@ -2,19 +2,36 @@ package com.company.pms.projectmember;
 
 import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
+import com.company.pms.common.PageResponse;
+import com.company.pms.common.PaginationSupport;
 import com.company.pms.project.Project;
 import com.company.pms.project.ProjectRepository;
 import com.company.pms.resource.ResourceEntity;
 import com.company.pms.resource.ResourceRepository;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/project-members")
 public class ProjectMemberController {
+
+    private static final Map<String, String> PROJECT_MEMBER_SORTS = Map.of(
+            "resourceName", "resource.resourceName",
+            "projectRole", "projectRole",
+            "allocationPercentage", "allocationPercentage",
+            "startDate", "startDate",
+            "id", "id"
+    );
 
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectRepository projectRepository;
@@ -45,6 +62,37 @@ public class ProjectMemberController {
         }
 
         return projectMemberRepository.findByProjectIdOrderByIdAsc(projectId);
+    }
+
+    @GetMapping("/project/{projectId}/paged")
+    public PageResponse<ProjectMember> getProjectMembersPaged(
+            @PathVariable Long projectId,
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "15") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean billable,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+        Project project = getProject(projectId);
+
+        if (!canViewProjectMembers(currentUser, project)) {
+            throw new RuntimeException("You do not have permission to view project members");
+        }
+
+        Pageable pageable = PaginationSupport.pageable(
+                page, size, 15, 50, sort, direction, PROJECT_MEMBER_SORTS, "id"
+        );
+
+        Specification<ProjectMember> specification = buildPagedSpecification(
+                projectId, search, active, billable
+        );
+
+        Page<ProjectMember> result = projectMemberRepository.findAll(specification, pageable);
+        return PageResponse.from(result);
     }
 
     /*
@@ -228,6 +276,45 @@ public class ProjectMemberController {
     private Project getProject(Long projectId) {
         return projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+    }
+
+    private Specification<ProjectMember> buildPagedSpecification(
+            Long projectId,
+            String search,
+            Boolean active,
+            Boolean billable) {
+
+        String normalizedSearch = PaginationSupport.normalized(search);
+
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("project").get("id"), projectId));
+
+            if (normalizedSearch != null) {
+                String contains = "%" + normalizedSearch + "%";
+                var resource = root.join("resource", JoinType.LEFT);
+                var appUser = resource.join("appUser", JoinType.LEFT);
+                var manager = appUser.join("managerUser", JoinType.LEFT);
+
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(resource.get("resourceName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(resource.get("designation")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("projectRole")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(manager.get("name")), contains)
+                ));
+            }
+
+            if (active != null) {
+                predicates.add(criteriaBuilder.equal(root.get("active"), active));
+            }
+
+            if (billable != null) {
+                predicates.add(criteriaBuilder.equal(root.get("billable"), billable));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private AppUser getCurrentUser(Authentication authentication) {

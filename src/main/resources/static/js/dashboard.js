@@ -16,6 +16,7 @@ async function loadDashboard() {
         setText("completedProjects", data.completedProjects || 0);
         setText("delayedProjects", data.delayedProjects || 0);
         setText("totalResources", data.totalResources || 0);
+        setText("totalAllocations", data.totalAllocations || 0);
         setText("totalTasks", data.totalTasks || 0);
         setText("completedTasks", data.completedTasks || 0);
         setText("delayedTasks", data.delayedTasks || 0);

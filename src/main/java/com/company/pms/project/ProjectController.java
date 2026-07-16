@@ -4,16 +4,34 @@ import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
 import com.company.pms.client.Client;
 import com.company.pms.client.ClientRepository;
+import com.company.pms.common.PageResponse;
+import com.company.pms.common.PaginationSupport;
 import com.company.pms.milestone.MilestoneService;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects")
 public class ProjectController {
+
+    private static final Map<String, String> PROJECT_SORTS = Map.of(
+            "projectCode", "projectCode",
+            "projectName", "projectName",
+            "startDate", "startDate",
+            "endDate", "endDate",
+            "status", "status",
+            "id", "id"
+    );
 
     private final ProjectRepository projectRepository;
     private final ProjectCodeService projectCodeService;
@@ -36,6 +54,31 @@ public class ProjectController {
     @GetMapping
     public List<Project> getAllProjects() {
         return projectRepository.findAll();
+    }
+
+    @GetMapping("/paged")
+    public PageResponse<Project> getProjectsPaged(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String projectType,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String country,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+        Pageable pageable = PaginationSupport.pageable(
+                page, size, 20, 50, sort, direction, PROJECT_SORTS, "id"
+        );
+
+        Specification<Project> specification = buildPagedSpecification(
+                currentUser, search, projectType, status, country
+        );
+
+        Page<Project> result = projectRepository.findAll(specification, pageable);
+        return PageResponse.from(result);
     }
 
     @GetMapping("/my-projects")
@@ -173,6 +216,96 @@ public class ProjectController {
     @DeleteMapping("/{id}")
     public void deleteProject(@PathVariable Long id) {
         projectRepository.deleteById(id);
+    }
+
+    private Specification<Project> buildPagedSpecification(
+            AppUser currentUser,
+            String search,
+            String projectType,
+            String status,
+            String country) {
+
+        String normalizedSearch = PaginationSupport.normalized(search);
+        String normalizedType = PaginationSupport.normalizedUpper(projectType);
+        String normalizedStatus = PaginationSupport.normalizedUpper(status);
+        String normalizedCountry = PaginationSupport.normalizedUpper(country);
+
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+
+            switch (currentUser.getRole()) {
+                case "ADMIN", "EXECUTIVE_VIEWER" -> {
+                    // Organization-wide visibility.
+                }
+                case "DELIVERY_HEAD" -> {
+                    Predicate directlyMapped = criteriaBuilder.equal(
+                            root.join("deliveryHeadUser", JoinType.LEFT).get("id"),
+                            currentUser.getId()
+                    );
+
+                    Predicate sameCountry = currentUser.getCountry() == null || currentUser.getCountry().isBlank()
+                            ? criteriaBuilder.disjunction()
+                            : criteriaBuilder.equal(
+                                    criteriaBuilder.upper(root.get("country")),
+                                    currentUser.getCountry().trim().toUpperCase()
+                            );
+
+                    predicates.add(criteriaBuilder.or(directlyMapped, sameCountry));
+                }
+                case "DELIVERY_MANAGER" -> predicates.add(criteriaBuilder.equal(
+                        root.join("deliveryManagerUser", JoinType.LEFT).get("id"),
+                        currentUser.getId()
+                ));
+                case "TL" -> predicates.add(criteriaBuilder.equal(
+                        root.join("tlUser", JoinType.LEFT).get("id"),
+                        currentUser.getId()
+                ));
+                case "CLIENT_VIEWER" -> {
+                    if (currentUser.getClient() == null) {
+                        predicates.add(criteriaBuilder.disjunction());
+                    } else {
+                        predicates.add(criteriaBuilder.equal(
+                                root.join("client", JoinType.LEFT).get("id"),
+                                currentUser.getClient().getId()
+                        ));
+                    }
+                }
+                default -> predicates.add(criteriaBuilder.disjunction());
+            }
+
+            if (normalizedSearch != null) {
+                String contains = "%" + normalizedSearch + "%";
+                var client = root.join("client", JoinType.LEFT);
+                var deliveryHead = root.join("deliveryHeadUser", JoinType.LEFT);
+                var deliveryManager = root.join("deliveryManagerUser", JoinType.LEFT);
+                var teamLead = root.join("tlUser", JoinType.LEFT);
+
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("projectCode")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("projectName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("country")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(client.get("clientName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(deliveryHead.get("name")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(deliveryManager.get("name")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(teamLead.get("name")), contains)
+                ));
+            }
+
+            if (normalizedType != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("projectType")), normalizedType));
+            }
+
+            if (normalizedStatus != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), normalizedStatus));
+            }
+
+            if (normalizedCountry != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("country")), normalizedCountry));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private AppUser getCurrentUser(Authentication authentication) {

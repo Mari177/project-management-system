@@ -2,6 +2,7 @@ package com.company.pms.timesheet;
 
 import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
+import com.company.pms.common.PageResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,34 @@ public class TimesheetController {
                                AppUserRepository appUserRepository) {
         this.timesheetService = timesheetService;
         this.appUserRepository = appUserRepository;
+    }
+
+    @GetMapping("/timesheets/paged")
+    public PageResponse<TimesheetDto> getTimesheetsPaged(
+            Authentication authentication,
+            @RequestParam(defaultValue = "all") String view,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String periodStart,
+            @RequestParam(required = false) String periodEnd,
+            @RequestParam(defaultValue = "periodStart") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+        return timesheetService.getTimesheetsPaged(
+                currentUser,
+                view,
+                page,
+                size,
+                search,
+                status,
+                periodStart,
+                periodEnd,
+                sort,
+                direction
+        );
     }
 
     @GetMapping("/timesheets")

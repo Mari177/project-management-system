@@ -1,11 +1,12 @@
 package com.company.pms.supportticket;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
+public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long>, JpaSpecificationExecutor<SupportTicket> {
 
     Optional<SupportTicket> findTopByTicketCodeStartingWithOrderByTicketCodeDesc(String prefix);
 

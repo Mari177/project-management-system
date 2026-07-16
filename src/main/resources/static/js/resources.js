@@ -1,53 +1,144 @@
 PMS.protectPage(["ADMIN", "EXECUTIVE_VIEWER", "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL"]);
 PMS.initLayout("resources");
 
-if (PMS.isExecutiveViewer()) {
-    const listTitle = document.querySelector(".section:nth-of-type(2) .section-title");
-    if (listTitle) {
-        listTitle.innerText = "Organization People Overview";
-    }
-}
-
 const currentUser = PMS.getUser();
 const canModifyResource = currentUser && currentUser.role === "ADMIN";
 
 let resourcesCache = [];
-let employeeUsersCache = [];
+let resourcesPager = null;
 
-if (!canModifyResource) {
-    document.getElementById("resourceFormSection").classList.add("hidden");
-    document.getElementById("actionHeader").classList.add("hidden");
-}
+configureResourcesPage();
+initializeResourcesPage();
 
-if (PMS.isDeliveryHead()) {
-    const listTitle = document.querySelector(".section:nth-of-type(2) .section-title");
-    if (listTitle) {
-        listTitle.innerText = "Regional Resources Overview";
+function configureResourcesPage() {
+    if (!canModifyResource) {
+        document.getElementById("resourceFormSection")?.classList.add("hidden");
+        document.getElementById("actionHeader")?.classList.add("hidden");
     }
-}
 
-if (PMS.isDeliveryManager() || PMS.isTL()) {
     const listTitle = document.querySelector(".section:nth-of-type(2) .section-title");
-    if (listTitle) {
+
+    if (!listTitle) {
+        return;
+    }
+
+    if (PMS.isExecutiveViewer()) {
+        listTitle.innerText = "Organization People Overview";
+    } else if (PMS.isDeliveryHead()) {
+        listTitle.innerText = "Regional Resources Overview";
+    } else if (PMS.isDeliveryManager() || PMS.isTL()) {
         listTitle.innerText = "Available Resources";
     }
 }
 
-loadInitialData();
+function initializeResourcesPage() {
+    const tableBody = document.getElementById("resourcesTable");
+    const section = tableBody.closest(".section");
+    const tableWrapper = tableBody.closest(".table-wrapper");
 
-const countrySelect = document.getElementById("country");
+    resourcesPager = PMS.createPagination({
+        key: "resources",
+        container: section,
+        target: tableWrapper,
+        defaultSize: 25,
+        sizeOptions: [25, 50, 100],
+        searchPlaceholder: "Search people, skills, department or reporting manager",
+        filters: [
+            {
+                key: "status",
+                label: "Resource status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "INACTIVE", label: "Inactive" }
+                ]
+            },
+            {
+                key: "country",
+                label: "Country",
+                options: [
+                    { value: "", label: "All countries" },
+                    { value: "INDIA", label: "India" },
+                    { value: "UAE", label: "UAE" },
+                    { value: "USA", label: "USA" },
+                    { value: "UK", label: "UK" }
+                ]
+            }
+        ],
+        onChange: loadResources
+    });
 
-if (countrySelect) {
-    countrySelect.addEventListener("change", async function () {
-        await loadAssignableUserDropdown(this.value);
+    if (canModifyResource) {
+        const countrySelect = document.getElementById("country");
+        countrySelect?.addEventListener("change", async function () {
+            await loadAssignableUserDropdown(this.value);
+        });
+
+        document.getElementById("resourceForm").addEventListener("submit", saveResource);
+    }
+
+    loadInitialData();
+}
+
+async function loadInitialData() {
+    if (canModifyResource) {
+        const defaultCountry = currentUser?.country || "INDIA";
+        document.getElementById("country").value = defaultCountry;
+        await loadAssignableUserDropdown(defaultCountry);
+    }
+
+    await loadResources();
+}
+
+async function loadAssignableUserDropdown(country) {
+    try {
+        const countryQuery = country ? `&country=${encodeURIComponent(country)}` : "";
+        const roles = ["DELIVERY_HEAD", "DELIVERY_MANAGER", "TL", "TEAM_MEMBER"];
+        const results = await Promise.all(
+            roles.map(role => PMS.apiGet(`/api/users/by-role?role=${role}${countryQuery}`))
+        );
+
+        const userMap = new Map();
+        results.flat().forEach(user => {
+            if (user?.id) {
+                userMap.set(user.id, user);
+            }
+        });
+
+        populateAssignableUserDropdown(Array.from(userMap.values()));
+    } catch (error) {
+        PMS.showError(error);
+    }
+}
+
+function populateAssignableUserDropdown(users) {
+    const select = document.getElementById("appUserId");
+
+    if (!select) {
+        return;
+    }
+
+    select.innerHTML = '<option value="">No login account yet</option>';
+
+    users.forEach(user => {
+        const manager = user.managerName
+            ? ` | Reports to: ${user.managerName}`
+            : " | Reports to: Not assigned";
+
+        select.innerHTML += `
+            <option value="${user.id}">
+                ${escapeHtml(user.name)} / ${escapeHtml(user.username)} -
+                ${escapeHtml(user.displayRole || user.role || "-")}
+                (${escapeHtml(user.country || "-")})${escapeHtml(manager)}
+            </option>
+        `;
     });
 }
 
-document.getElementById("resourceForm").addEventListener("submit", async function (event) {
+async function saveResource(event) {
     event.preventDefault();
 
     const id = document.getElementById("resourceId").value;
-
     const selectedAppUserId = document.getElementById("appUserId").value;
 
     const resource = {
@@ -66,77 +157,28 @@ document.getElementById("resourceForm").addEventListener("submit", async functio
         if (id) {
             await PMS.apiPut(`/api/resources/${id}`, resource);
         } else {
-
             await PMS.apiPost("/api/resources", resource);
         }
+
         resetResourceForm();
         await loadResources();
-    } catch (error) {
-        PMS.showError(error);
-    }
-});
-
-async function loadInitialData() {
-    if (canModifyResource) {
-        const defaultCountry = currentUser && currentUser.country
-            ? currentUser.country
-            : "INDIA";
-
-        document.getElementById("country").value = defaultCountry;
-        await loadAssignableUserDropdown(defaultCountry);
-    }
-
-    await loadResources();
-}
-
-async function loadAssignableUserDropdown(country) {
-    try {
-        const countryQuery = country ? `&country=${country}` : "";
-        const roles = ["DELIVERY_HEAD", "DELIVERY_MANAGER", "TL", "TEAM_MEMBER"];
-
-        const results = await Promise.all(
-            roles.map(role => PMS.apiGet(`/api/users/by-role?role=${role}${countryQuery}`))
-        );
-
-        const userMap = new Map();
-
-        results.flat().forEach(user => {
-            if (user && user.id) {
-                userMap.set(user.id, user);
-            }
-        });
-
-        const assignableUsers = Array.from(userMap.values());
-        populateAssignableUserDropdown(assignableUsers);
+        PMS_UI?.toast?.(id ? "Resource updated successfully." : "Resource created successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }
 }
 
-function populateAssignableUserDropdown(users) {
-    const select = document.getElementById("appUserId");
-
-    if (!select) {
-        return;
-    }
-
-    select.innerHTML = `<option value="">No login account yet</option>`;
-
-    users.forEach(user => {
-        const manager = user.managerName ? ` | Reports to: ${user.managerName}` : " | Reports to: Not assigned";
-
-        select.innerHTML += `
-            <option value="${user.id}">
-                ${user.name} / ${user.username} - ${user.displayRole || user.role || "-"} (${user.country || "-"})${manager}
-            </option>
-        `;
-    });
-}
 async function loadResources() {
     try {
-        const resources = await PMS.apiGet("/api/resources");
-        resourcesCache = resources || [];
+        const query = resourcesPager.buildParams({
+            sort: "resourceName",
+            direction: "asc"
+        });
+
+        const response = await PMS.apiGet(`/api/resources/paged?${query}`);
+        resourcesCache = response.content || [];
         renderResources(resourcesCache);
+        resourcesPager.update(response);
     } catch (error) {
         PMS.showError(error);
     }
@@ -148,7 +190,9 @@ function renderResources(resources) {
     if (!resources || resources.length === 0) {
         table.innerHTML = `
             <tr>
-                <td colspan="12" class="empty-state">No resources found</td>
+                <td colspan="12" class="empty-state">
+                    No resources match the selected filters.
+                </td>
             </tr>
         `;
         return;
@@ -157,49 +201,49 @@ function renderResources(resources) {
     table.innerHTML = resources.map(resource => `
         <tr>
             <td>${resource.id}</td>
-            <td>${resource.resourceName || "-"}</td>
-            <td>${resource.designation || "-"}</td>
-            <td>${resource.department || "-"}</td>
-            <td>${resource.country || "-"}</td>
-            <td>${resource.location || "-"}</td>
-            <td>${resource.skill || "-"}</td>
-           <td>
-    ${resource.appUser
-            ? `${resource.appUser.name} / ${resource.appUser.username}`
-            : `<span class="muted-small">No login linked</span>`
-        }
-</td>
+            <td><strong>${escapeHtml(resource.resourceName || "-")}</strong></td>
+            <td>${escapeHtml(resource.designation || "-")}</td>
+            <td>${escapeHtml(resource.department || "-")}</td>
+            <td>${escapeHtml(resource.country || "-")}</td>
+            <td>${escapeHtml(resource.location || "-")}</td>
+            <td>${escapeHtml(resource.skill || "-")}</td>
+            <td>
+                ${resource.appUser
+                    ? `${escapeHtml(resource.appUser.name || "-")} / ${escapeHtml(resource.appUser.username || "-")}`
+                    : '<span class="muted-small">No login linked</span>'}
+            </td>
             <td>${formatReportingManager(resource)}</td>
-            <td>${PMS.isAdminOrDeliveryHead() ? PMS.formatHourlyUsdFromMonthlyInr(resource.monthlySalary) : "Restricted"}</td>
+            <td>${PMS.isAdminOrDeliveryHead()
+                ? PMS.formatHourlyUsdFromMonthlyInr(resource.monthlySalary)
+                : "Restricted"}</td>
             <td>${PMS.badge(resource.status)}</td>
             ${canModifyResource
-            ? `<td>
-                        <button class="action-link" onclick="editResource(${resource.id})">Edit</button>
-                        <button class="action-link danger" onclick="deleteResource(${resource.id})">Delete</button>
-                       </td>`
-            : `<td class="hidden"></td>`
-        }
+                ? `<td>
+                    <button class="action-link" onclick="editResource(${resource.id})">Edit</button>
+                    <button class="action-link danger" onclick="deleteResource(${resource.id})">Delete</button>
+                   </td>`
+                : '<td class="hidden"></td>'}
         </tr>
     `).join("");
 }
 
 function formatReportingManager(resource) {
-    if (!resource || !resource.reportingManagerName) {
-        return `<span class="muted-small">Not assigned</span>`;
+    if (!resource?.reportingManagerName) {
+        return '<span class="muted-small">Not assigned</span>';
     }
 
     const designation = resource.reportingManagerDesignation
-        ? `<div class="muted-small">${resource.reportingManagerDesignation}</div>`
+        ? `<div class="muted-small">${escapeHtml(resource.reportingManagerDesignation)}</div>`
         : "";
 
-    return `${resource.reportingManagerName}${designation}`;
+    return `${escapeHtml(resource.reportingManagerName)}${designation}`;
 }
 
 async function editResource(id) {
     const resource = resourcesCache.find(item => item.id === id);
 
     if (!resource) {
-        alert("Resource not found");
+        PMS_UI?.toast?.("Resource could not be found on the current page.", "error");
         return;
     }
 
@@ -214,16 +258,14 @@ async function editResource(id) {
     document.getElementById("status").value = resource.status || "ACTIVE";
 
     await loadAssignableUserDropdown(resource.country || "");
-
-    document.getElementById("appUserId").value =
-        resource.appUser ? resource.appUser.id : "";
-
+    document.getElementById("appUserId").value = resource.appUser?.id || "";
     document.getElementById("saveResourceBtn").innerText = "Update Resource";
-    window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function deleteResource(id) {
-    const confirmed = confirm("Are you sure you want to delete this resource?");
+    const confirmed = window.PMS_UI?.confirm
+        ? await PMS_UI.confirm("Delete resource?", "This action cannot be undone.")
+        : window.confirm("Are you sure you want to delete this resource?");
 
     if (!confirmed) {
         return;
@@ -231,7 +273,13 @@ async function deleteResource(id) {
 
     try {
         await PMS.apiDelete(`/api/resources/${id}`);
+
+        if (resourcesCache.length === 1 && resourcesPager.state.page > 0) {
+            resourcesPager.setPage(resourcesPager.state.page - 1);
+        }
+
         await loadResources();
+        PMS_UI?.toast?.("Resource deleted successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }
@@ -243,11 +291,17 @@ function resetResourceForm() {
     document.getElementById("saveResourceBtn").innerText = "Save Resource";
 
     if (canModifyResource) {
-        const defaultCountry = currentUser && currentUser.country
-            ? currentUser.country
-            : "INDIA";
-
+        const defaultCountry = currentUser?.country || "INDIA";
         document.getElementById("country").value = defaultCountry;
         loadAssignableUserDropdown(defaultCountry);
     }
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }

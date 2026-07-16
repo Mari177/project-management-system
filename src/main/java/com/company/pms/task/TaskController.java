@@ -2,6 +2,8 @@ package com.company.pms.task;
 
 import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
+import com.company.pms.common.PageResponse;
+import com.company.pms.common.PaginationSupport;
 import com.company.pms.milestone.Milestone;
 import com.company.pms.milestone.MilestoneRepository;
 import com.company.pms.milestone.MilestoneService;
@@ -11,14 +13,32 @@ import com.company.pms.resource.ResourceEntity;
 import com.company.pms.resource.ResourceRepository;
 import com.company.pms.projectmember.ProjectMember;
 import com.company.pms.projectmember.ProjectMemberRepository;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
+
+    private static final Map<String, String> TASK_SORTS = Map.of(
+            "taskCode", "taskCode",
+            "taskName", "taskName",
+            "endDate", "endDate",
+            "startDate", "startDate",
+            "priority", "priority",
+            "status", "status",
+            "progressPercentage", "progressPercentage",
+            "id", "id"
+    );
 
     private final TaskRepository taskRepository;
     private final TaskCodeService taskCodeService;
@@ -50,6 +70,33 @@ public class TaskController {
     @GetMapping
     public List<TaskEntity> getAllTasks() {
         return taskRepository.findAll();
+    }
+
+    @GetMapping("/paged")
+    public PageResponse<TaskEntity> getTasksPaged(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "25") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long resourceId,
+            @RequestParam(required = false) Boolean escalated,
+            @RequestParam(defaultValue = "endDate") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+        Pageable pageable = PaginationSupport.pageable(
+                page, size, 25, 100, sort, direction, TASK_SORTS, "endDate"
+        );
+
+        Specification<TaskEntity> specification = buildPagedSpecification(
+                currentUser, search, status, priority, projectId, resourceId, escalated
+        );
+
+        Page<TaskEntity> result = taskRepository.findAll(specification, pageable);
+        return PageResponse.from(result);
     }
 
     @GetMapping("/my-tasks")
@@ -184,15 +231,28 @@ public class TaskController {
             if (!assignedToCurrentEmployee) {
                 throw new RuntimeException("You can update progress only for your assigned task");
             }
+        } else {
+            if (task.getProject() == null) {
+                throw new RuntimeException("Task project is missing");
+            }
+
+            validateTaskManagementPermission(currentUser, task.getProject());
         }
 
         task.setProgressPercentage(normalizeProgress(request.getProgressPercentage(), 0));
 
         if (task.getProgressPercentage() == 100) {
             task.setStatus("COMPLETED");
-        } else if (task.getProgressPercentage() > 0
-                && (task.getStatus() == null || "NOT_STARTED".equals(task.getStatus()))) {
-            task.setStatus("IN_PROGRESS");
+        } else if (task.getProgressPercentage() > 0) {
+            if (task.getStatus() == null
+                    || "NOT_STARTED".equals(task.getStatus())
+                    || "COMPLETED".equals(task.getStatus())) {
+                task.setStatus("IN_PROGRESS");
+            }
+        } else if (task.getStatus() == null
+                || "IN_PROGRESS".equals(task.getStatus())
+                || "COMPLETED".equals(task.getStatus())) {
+            task.setStatus("NOT_STARTED");
         }
 
         TaskEntity savedTask = taskRepository.save(task);
@@ -300,6 +360,111 @@ public class TaskController {
         }
 
         return List.of();
+    }
+
+    private Specification<TaskEntity> buildPagedSpecification(
+            AppUser currentUser,
+            String search,
+            String status,
+            String priority,
+            Long projectId,
+            Long resourceId,
+            Boolean escalated) {
+
+        String normalizedSearch = PaginationSupport.normalized(search);
+        String normalizedStatus = PaginationSupport.normalizedUpper(status);
+        String normalizedPriority = PaginationSupport.normalizedUpper(priority);
+
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+            var project = root.join("project", JoinType.LEFT);
+            var assignedResource = root.join("assignedResource", JoinType.LEFT);
+
+            switch (currentUser.getRole()) {
+                case "ADMIN", "EXECUTIVE_VIEWER" -> {
+                    // Organization-wide visibility.
+                }
+                case "DELIVERY_HEAD" -> {
+                    Predicate directlyMapped = criteriaBuilder.equal(
+                            project.join("deliveryHeadUser", JoinType.LEFT).get("id"),
+                            currentUser.getId()
+                    );
+
+                    Predicate sameCountry = currentUser.getCountry() == null || currentUser.getCountry().isBlank()
+                            ? criteriaBuilder.disjunction()
+                            : criteriaBuilder.equal(
+                                    criteriaBuilder.upper(project.get("country")),
+                                    currentUser.getCountry().trim().toUpperCase()
+                            );
+
+                    predicates.add(criteriaBuilder.or(directlyMapped, sameCountry));
+                }
+                case "DELIVERY_MANAGER" -> predicates.add(criteriaBuilder.equal(
+                        project.join("deliveryManagerUser", JoinType.LEFT).get("id"),
+                        currentUser.getId()
+                ));
+                case "TL" -> predicates.add(criteriaBuilder.equal(
+                        project.join("tlUser", JoinType.LEFT).get("id"),
+                        currentUser.getId()
+                ));
+                case "CLIENT_VIEWER" -> {
+                    if (currentUser.getClient() == null) {
+                        predicates.add(criteriaBuilder.disjunction());
+                    } else {
+                        predicates.add(criteriaBuilder.equal(
+                                project.join("client", JoinType.LEFT).get("id"),
+                                currentUser.getClient().getId()
+                        ));
+                    }
+                }
+                case "TEAM_MEMBER" -> predicates.add(criteriaBuilder.equal(
+                        assignedResource.join("appUser", JoinType.LEFT).get("id"),
+                        currentUser.getId()
+                ));
+                default -> predicates.add(criteriaBuilder.disjunction());
+            }
+
+            if (normalizedSearch != null) {
+                String contains = "%" + normalizedSearch + "%";
+                var milestone = root.join("milestone", JoinType.LEFT);
+                var resourceUser = assignedResource.join("appUser", JoinType.LEFT);
+                var manager = resourceUser.join("managerUser", JoinType.LEFT);
+
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("taskCode")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("taskName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("taskDescription")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(project.get("projectCode")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(project.get("projectName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(milestone.get("milestoneName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(assignedResource.get("resourceName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(manager.get("name")), contains)
+                ));
+            }
+
+            if (normalizedStatus != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), normalizedStatus));
+            }
+
+            if (normalizedPriority != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("priority")), normalizedPriority));
+            }
+
+            if (projectId != null) {
+                predicates.add(criteriaBuilder.equal(project.get("id"), projectId));
+            }
+
+            if (resourceId != null) {
+                predicates.add(criteriaBuilder.equal(assignedResource.get("id"), resourceId));
+            }
+
+            if (escalated != null) {
+                predicates.add(criteriaBuilder.equal(root.get("escalated"), escalated));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private AppUser getCurrentUser(Authentication authentication) {

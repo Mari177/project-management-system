@@ -91,6 +91,7 @@ function getTaskTableColumnCount() {
 }
 
 let tasksCache = [];
+let tasksPager = null;
 let projectsCache = [];
 let milestonesCache = [];
 let projectMembersCache = [];
@@ -131,6 +132,7 @@ if (PMS.isDeliveryHead()) {
     }
 }
 
+initializeTaskPagination();
 loadInitialData();
 
 const projectSelect = document.getElementById("projectId");
@@ -184,7 +186,8 @@ if (taskForm) {
             }
 
             resetTaskForm();
-            loadTasks();
+            await loadTasks();
+            PMS_UI?.toast?.(id ? "Task updated successfully." : "Task created successfully.", "success");
         } catch (error) {
             PMS.showError(error);
         }
@@ -368,11 +371,63 @@ function populateAssigneeDropdown(members, selectedResourceId) {
     });
 }
 
+function initializeTaskPagination() {
+    const table = document.getElementById("tasksTable");
+    tasksPager = PMS.createPagination({
+        key: "tasks",
+        container: table.closest(".section"),
+        target: table.closest(".table-wrapper"),
+        defaultSize: 25,
+        sizeOptions: [25, 50, 100],
+        searchPlaceholder: "Search task code, name, project, milestone or assignee",
+        filters: [
+            {
+                key: "status",
+                label: "Task status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "NOT_STARTED", label: "Not started" },
+                    { value: "IN_PROGRESS", label: "In progress" },
+                    { value: "BLOCKED", label: "Blocked" },
+                    { value: "DELAYED", label: "Delayed" },
+                    { value: "COMPLETED", label: "Completed" }
+                ]
+            },
+            {
+                key: "priority",
+                label: "Priority",
+                options: [
+                    { value: "", label: "All priorities" },
+                    { value: "CRITICAL", label: "Critical" },
+                    { value: "HIGH", label: "High" },
+                    { value: "MEDIUM", label: "Medium" },
+                    { value: "LOW", label: "Low" }
+                ]
+            },
+            {
+                key: "escalated",
+                label: "Escalation",
+                options: [
+                    { value: "", label: "All tasks" },
+                    { value: "true", label: "Escalated only" },
+                    { value: "false", label: "Not escalated" }
+                ]
+            }
+        ],
+        onChange: loadTasks
+    });
+}
+
 async function loadTasks() {
     try {
-        const tasks = await PMS.apiGet(PMS.getTasksApi());
-        tasksCache = tasks || [];
+        const query = tasksPager.buildParams({
+            sort: "endDate",
+            direction: "asc"
+        });
+        const response = await PMS.apiGet(`/api/tasks/paged?${query}`);
+        tasksCache = response.content || [];
         renderTasks(tasksCache);
+        tasksPager.update(response);
     } catch (error) {
         PMS.showError(error);
     }
@@ -541,69 +596,64 @@ async function editTask(id) {
 }
 
 async function updateTaskProgress(id) {
-    const task =
-        tasksCache.find(
-            item =>
-                item.id === id
-        );
+    const task = tasksCache.find(item => item.id === id);
 
     if (!task) {
-        PMS_UI.toast(
-            "Task could not be found.",
-            "error"
-        );
-
+        if (window.PMS_UI?.toast) {
+            window.PMS_UI.toast("Task could not be found.", "error");
+        } else {
+            window.alert("Task could not be found.");
+        }
         return;
     }
 
-    const currentProgress =
-        task.progressPercentage || 0;
+    const currentProgress = task.progressPercentage || 0;
+    let value;
 
-    const value =
-        await PMS_UI.prompt({
-            title:
-                "Update task progress",
-
-            message:
-                `${task.taskName || "Task"} — enter completion percentage.`,
-
-            value:
-                String(currentProgress),
-
-            type:
-                "number",
-
-            min:
-                0,
-
-            max:
-                100,
-
-            required:
-                true
+    if (window.PMS_UI?.prompt) {
+        value = await window.PMS_UI.prompt({
+            title: "Update task progress",
+            message: `${task.taskName || "Task"} — enter completion percentage.`,
+            value: String(currentProgress),
+            type: "number",
+            min: 0,
+            max: 100,
+            required: true
         });
+    } else {
+        value = window.prompt(
+            "Enter completion percentage between 0 and 100:",
+            String(currentProgress)
+        );
+    }
 
     if (value === null) {
         return;
     }
 
-    const progressPercentage =
-        Number(value);
+    const progressPercentage = Number(value);
+
+    if (!Number.isFinite(progressPercentage)
+            || progressPercentage < 0
+            || progressPercentage > 100) {
+        PMS.showError(new Error("Progress percentage must be between 0 and 100."));
+        return;
+    }
 
     try {
         await PMS.apiPut(
             `/api/tasks/${id}/progress`,
-            {
-                progressPercentage
-            }
+            { progressPercentage }
         );
 
         await loadTasks();
 
-        PMS_UI.toast(
-            "Task progress updated successfully.",
-            "success"
-        );
+        if (window.PMS_UI?.toast) {
+            window.PMS_UI.toast(
+                "Task progress updated successfully.",
+                "success"
+            );
+        }
     } catch (error) {
         PMS.showError(error);
     }
@@ -652,7 +702,11 @@ async function deleteTask(id) {
 
     try {
         await PMS.apiDelete(`/api/tasks/${id}`);
-        loadTasks();
+        if (tasksCache.length === 1 && tasksPager.state.page > 0) {
+            tasksPager.setPage(tasksPager.state.page - 1);
+        }
+        await loadTasks();
+        PMS_UI?.toast?.("Task deleted successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }

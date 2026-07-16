@@ -11,6 +11,16 @@ public interface TimeLogRepository extends JpaRepository<TimeLog, Long> {
 
     List<TimeLog> findByTimesheetIdOrderByLogDateAsc(Long timesheetId);
 
+    long countByTimesheetId(Long timesheetId);
+
+    @Query("""
+            select tl.timesheet.id, count(tl.id)
+            from TimeLog tl
+            where tl.timesheet.id in :timesheetIds
+            group by tl.timesheet.id
+            """)
+    List<Object[]> countByTimesheetIds(@Param("timesheetIds") List<Long> timesheetIds);
+
     List<TimeLog> findByTaskId(Long taskId);
 
     List<TimeLog> findByTaskIdAndStatus(Long taskId, String status);

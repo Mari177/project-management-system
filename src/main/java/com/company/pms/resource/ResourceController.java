@@ -2,15 +2,32 @@ package com.company.pms.resource;
 
 import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
-
+import com.company.pms.common.PageResponse;
+import com.company.pms.common.PaginationSupport;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/resources")
 public class ResourceController {
+
+    private static final Map<String, String> RESOURCE_SORTS = Map.of(
+            "resourceName", "resourceName",
+            "designation", "designation",
+            "department", "department",
+            "country", "country",
+            "status", "status",
+            "id", "id"
+    );
 
     private final ResourceRepository resourceRepository;
     private final AppUserRepository appUserRepository;
@@ -21,23 +38,52 @@ public class ResourceController {
         this.appUserRepository = appUserRepository;
     }
 
-@GetMapping
-public List<ResourceEntity> getAllResources(Authentication authentication) {
-    AppUser currentUser = getCurrentUser(authentication);
+    @GetMapping
+    public List<ResourceEntity> getAllResources(Authentication authentication) {
+        AppUser currentUser = getCurrentUser(authentication);
 
-    return switch (currentUser.getRole()) {
-       case "ADMIN", "EXECUTIVE_VIEWER" -> resourceRepository.findAll();
+        return switch (currentUser.getRole()) {
+            case "ADMIN", "EXECUTIVE_VIEWER" -> resourceRepository.findAll();
+            case "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL" -> getResourcesByUserCountry(currentUser);
+            case "TEAM_MEMBER" -> List.of();
+            default -> List.of();
+        };
+    }
 
-        case "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL" ->
-                getResourcesByUserCountry(currentUser);
+    @GetMapping("/paged")
+    public PageResponse<ResourceEntity> getResourcesPaged(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "25") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String country,
+            @RequestParam(defaultValue = "resourceName") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
 
-        case "TEAM_MEMBER" ->
-                List.of();
+        AppUser currentUser = getCurrentUser(authentication);
 
-        default ->
-                List.of();
-    };
-}
+        Pageable pageable = PaginationSupport.pageable(
+                page,
+                size,
+                25,
+                100,
+                sort,
+                direction,
+                RESOURCE_SORTS,
+                "resourceName"
+        );
+
+        Specification<ResourceEntity> specification = buildPagedSpecification(
+                currentUser,
+                search,
+                status,
+                country
+        );
+
+        Page<ResourceEntity> result = resourceRepository.findAll(specification, pageable);
+        return PageResponse.from(result);
+    }
 
     @GetMapping("/{id}")
     public ResourceEntity getResourceById(@PathVariable Long id) {
@@ -59,7 +105,6 @@ public List<ResourceEntity> getAllResources(Authentication authentication) {
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
 
         mapRequestToResource(request, resource);
-
         return resourceRepository.save(resource);
     }
 
@@ -68,102 +113,152 @@ public List<ResourceEntity> getAllResources(Authentication authentication) {
         resourceRepository.deleteById(id);
     }
 
-   private void mapRequestToResource(ResourceRequest request,
-                                  ResourceEntity resource) {
-    resource.setResourceName(request.getResourceName());
-    resource.setDesignation(request.getDesignation());
-    resource.setDepartment(request.getDepartment());
-    resource.setSkill(request.getSkill());
-    resource.setMonthlySalary(request.getMonthlySalary());
-    resource.setStatus(request.getStatus());
-    resource.setLocation(request.getLocation());
+    private Specification<ResourceEntity> buildPagedSpecification(
+            AppUser currentUser,
+            String search,
+            String status,
+            String country) {
 
-    Long appUserId = request.getAppUserId();
+        String normalizedSearch = PaginationSupport.normalized(search);
+        String normalizedStatus = PaginationSupport.normalizedUpper(status);
+        String normalizedCountry = PaginationSupport.normalizedUpper(country);
 
-    AppUser appUser = null;
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
 
-    if (appUserId != null && appUserId > 0) {
-        appUser = appUserRepository.findById(appUserId)
-                .orElseThrow(() -> new RuntimeException("App user not found"));
+            switch (currentUser.getRole()) {
+                case "ADMIN", "EXECUTIVE_VIEWER" -> {
+                    // Organization-wide visibility.
+                }
+                case "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL" -> {
+                    if (currentUser.getCountry() == null || currentUser.getCountry().isBlank()) {
+                        predicates.add(criteriaBuilder.disjunction());
+                    } else {
+                        predicates.add(criteriaBuilder.equal(
+                                criteriaBuilder.upper(root.get("country")),
+                                currentUser.getCountry().trim().toUpperCase()
+                        ));
+                    }
+                }
+                default -> predicates.add(criteriaBuilder.disjunction());
+            }
 
-        if ("ADMIN".equals(appUser.getRole())) {
-        throw new RuntimeException("System admin login cannot be mapped as a project resource");
+            if (normalizedSearch != null) {
+                var appUser = root.join("appUser", JoinType.LEFT);
+                var manager = appUser.join("managerUser", JoinType.LEFT);
+                String contains = "%" + normalizedSearch + "%";
+
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("resourceName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("designation")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("department")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("skill")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("country")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("location")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(appUser.get("name")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(appUser.get("username")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(manager.get("name")), contains)
+                ));
+            }
+
+            if (normalizedStatus != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), normalizedStatus));
+            }
+
+            if (normalizedCountry != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("country")), normalizedCountry));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
-        validateAppUserNotAlreadyLinked(appUserId, resource.getId());
+    private void mapRequestToResource(ResourceRequest request,
+                                      ResourceEntity resource) {
+        resource.setResourceName(request.getResourceName());
+        resource.setDesignation(request.getDesignation());
+        resource.setDepartment(request.getDepartment());
+        resource.setSkill(request.getSkill());
+        resource.setMonthlySalary(request.getMonthlySalary());
+        resource.setStatus(request.getStatus());
+        resource.setLocation(request.getLocation());
 
-        resource.setAppUser(appUser);
-    } else {
-        resource.setAppUser(null);
-    }
+        Long appUserId = request.getAppUserId();
+        AppUser appUser = null;
 
-    String requestedCountry = normalizeCountry(request.getCountry());
+        if (appUserId != null && appUserId > 0) {
+            appUser = appUserRepository.findById(appUserId)
+                    .orElseThrow(() -> new RuntimeException("App user not found"));
 
-    /*
-     * Country rule:
-     * 1. If UI gives country, use it.
-     * 2. If UI country is empty and login is linked, derive from AppUser country.
-     * 3. If both are present and different, reject.
-     * 4. If no login is linked, country is mandatory.
-     */
-    if (requestedCountry != null) {
-        if (appUser != null
-                && appUser.getCountry() != null
-                && !requestedCountry.equals(appUser.getCountry())) {
-            throw new RuntimeException("Resource country and linked login country do not match");
+            if ("ADMIN".equals(appUser.getRole())) {
+                throw new RuntimeException("System admin login cannot be mapped as a project resource");
+            }
+
+            validateAppUserNotAlreadyLinked(appUserId, resource.getId());
+            resource.setAppUser(appUser);
+        } else {
+            resource.setAppUser(null);
         }
 
-        resource.setCountry(requestedCountry);
-        return;
-    }
+        String requestedCountry = normalizeCountry(request.getCountry());
 
-    if (appUser != null && appUser.getCountry() != null && !appUser.getCountry().isBlank()) {
-        resource.setCountry(appUser.getCountry());
-        return;
-    }
+        if (requestedCountry != null) {
+            if (appUser != null
+                    && appUser.getCountry() != null
+                    && !requestedCountry.equals(appUser.getCountry())) {
+                throw new RuntimeException("Resource country and linked login country do not match");
+            }
 
-    throw new RuntimeException("Country is required when no login account is linked");
-}
+            resource.setCountry(requestedCountry);
+            return;
+        }
+
+        if (appUser != null && appUser.getCountry() != null && !appUser.getCountry().isBlank()) {
+            resource.setCountry(appUser.getCountry());
+            return;
+        }
+
+        throw new RuntimeException("Country is required when no login account is linked");
+    }
 
     private AppUser getCurrentUser(Authentication authentication) {
-    if (authentication == null || authentication.getName() == null) {
-        throw new RuntimeException("User is not logged in");
+        if (authentication == null || authentication.getName() == null) {
+            throw new RuntimeException("User is not logged in");
+        }
+
+        return appUserRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
     }
 
-    return appUserRepository.findByUsername(authentication.getName())
-            .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
-}
+    private List<ResourceEntity> getResourcesByUserCountry(AppUser currentUser) {
+        if (currentUser.getCountry() == null || currentUser.getCountry().isBlank()) {
+            return List.of();
+        }
 
-private List<ResourceEntity> getResourcesByUserCountry(AppUser currentUser) {
-    if (currentUser.getCountry() == null || currentUser.getCountry().isBlank()) {
-        return List.of();
+        return resourceRepository.findByCountry(currentUser.getCountry());
     }
 
-    return resourceRepository.findByCountry(currentUser.getCountry());
-}
+    private void validateAppUserNotAlreadyLinked(Long appUserId, Long currentResourceId) {
+        if (currentResourceId == null) {
+            resourceRepository.findByAppUserId(appUserId)
+                    .ifPresent(existingResource -> {
+                        throw new RuntimeException("This login is already linked to another resource");
+                    });
+            return;
+        }
 
-private void validateAppUserNotAlreadyLinked(Long appUserId, Long currentResourceId) {
-    if (currentResourceId == null) {
-        resourceRepository.findByAppUserId(appUserId)
+        resourceRepository.findByAppUserIdAndIdNot(appUserId, currentResourceId)
                 .ifPresent(existingResource -> {
                     throw new RuntimeException("This login is already linked to another resource");
                 });
-
-        return;
     }
 
-    resourceRepository.findByAppUserIdAndIdNot(appUserId, currentResourceId)
-            .ifPresent(existingResource -> {
-                throw new RuntimeException("This login is already linked to another resource");
-            });
-}
+    private String normalizeCountry(String country) {
+        if (country == null || country.isBlank()) {
+            return null;
+        }
 
-private String normalizeCountry(String country) {
-    if (country == null || country.isBlank()) {
-        return null;
+        return country.trim().toUpperCase();
     }
-
-    return country.trim().toUpperCase();
-}
-
 }

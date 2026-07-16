@@ -8,6 +8,8 @@ import com.company.pms.milestone.MilestoneRepository;
 import com.company.pms.milestone.MilestoneService;
 import com.company.pms.project.Project;
 import com.company.pms.project.ProjectRepository;
+import com.company.pms.projectmember.ProjectMember;
+import com.company.pms.projectmember.ProjectMemberRepository;
 import com.company.pms.resource.ResourceRepository;
 import com.company.pms.task.TaskEntity;
 import com.company.pms.task.TaskRepository;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +48,7 @@ public class DashboardController {
     private final AppUserRepository appUserRepository;
     private final MilestoneService milestoneService;
     private final TimeLogRepository timeLogRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     public DashboardController(ClientRepository clientRepository,
             ProjectRepository projectRepository,
@@ -52,7 +57,8 @@ public class DashboardController {
             ResourceRepository resourceRepository,
             AppUserRepository appUserRepository,
             MilestoneService milestoneService,
-            TimeLogRepository timeLogRepository) {
+            TimeLogRepository timeLogRepository,
+            ProjectMemberRepository projectMemberRepository) {
         this.clientRepository = clientRepository;
         this.projectRepository = projectRepository;
         this.milestoneRepository = milestoneRepository;
@@ -61,6 +67,7 @@ public class DashboardController {
         this.appUserRepository = appUserRepository;
         this.milestoneService = milestoneService;
         this.timeLogRepository = timeLogRepository;
+        this.projectMemberRepository = projectMemberRepository;
     }
 
     @GetMapping("/api/dashboard")
@@ -70,16 +77,17 @@ public class DashboardController {
         List<Project> projects = getProjectsForUser(currentUser);
         List<TaskEntity> tasks = getTasksForUser(currentUser);
 
-        recalculateMilestonesForProjects(projects);
-
         List<Milestone> milestones = getMilestonesForUser(currentUser, projects, tasks);
+        List<ProjectMember> activeProjectMembers = getActiveProjectMembers(projects);
 
         DashboardResponse response = new DashboardResponse();
 
         response.setTotalClients(getTotalClients(currentUser, projects));
         response.setTotalProjects(projects.size());
-        response.setActiveProjects(countProjectsByStatus(projects, "IN_PROGRESS"));
-        response.setCompletedProjects(countProjectsByStatus(projects, "COMPLETED"));
+        response.setActiveProjects(countProjectsByStatuses(
+                projects, "IN_PROGRESS", "GO_LIVE", "POST_LIVE", "ACTIVE"));
+        response.setCompletedProjects(countProjectsByStatuses(
+                projects, "COMPLETED", "MOVED_TO_SUPPORT", "CLOSED"));
         response.setDelayedProjects(countProjectsByStatus(projects, "DELAYED"));
 
         response.setTotalMilestones(milestones.size());
@@ -93,8 +101,12 @@ public class DashboardController {
         response.setOpenEscalations(countOpenEscalations(tasks));
         response.setCriticalEscalations(countCriticalEscalations(tasks));
 
-        response.setTotalResources(getTotalResources(currentUser, tasks));
-        response.setTotalAllocations(0);
+        response.setTotalResources(getTotalResources(
+                currentUser,
+                activeProjectMembers,
+                tasks
+        ));
+        response.setTotalAllocations(activeProjectMembers.size());
         response.setTotalCost(canViewProjectCost(currentUser) ? calculateTotalCost(tasks) : null);
 
         response.setProjectSummaries(buildProjectSummaries(currentUser, projects, tasks));
@@ -272,9 +284,10 @@ public class DashboardController {
     }
 
     private long getTotalResources(AppUser currentUser,
+            List<ProjectMember> activeProjectMembers,
             List<TaskEntity> tasks) {
-        if ("ADMIN".equals(currentUser.getRole())) {
-            return resourceRepository.count();
+        if ("ADMIN".equals(currentUser.getRole()) || "EXECUTIVE_VIEWER".equals(currentUser.getRole())) {
+            return resourceRepository.countByStatusIgnoreCase("ACTIVE");
         }
 
         if ("DELIVERY_HEAD".equals(currentUser.getRole())) {
@@ -282,23 +295,57 @@ public class DashboardController {
                 return 0;
             }
 
-            return resourceRepository.findByCountry(currentUser.getCountry()).size();
+            return resourceRepository.findByCountryAndStatus(currentUser.getCountry(), "ACTIVE").size();
         }
 
-        Set<Long> resourceIds = new HashSet<>();
+        Set<Long> resourceIds = activeProjectMembers.stream()
+                .map(ProjectMember::getResource)
+                .filter(Objects::nonNull)
+                .map(resource -> resource.getId())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-        for (TaskEntity task : tasks) {
-            if (task.getAssignedResource() != null) {
-                resourceIds.add(task.getAssignedResource().getId());
+        if (resourceIds.isEmpty()) {
+            for (TaskEntity task : tasks) {
+                if (task.getAssignedResource() != null) {
+                    resourceIds.add(task.getAssignedResource().getId());
+                }
             }
         }
 
         return resourceIds.size();
     }
 
+    private List<ProjectMember> getActiveProjectMembers(List<Project> projects) {
+        List<Long> projectIds = projects.stream()
+                .filter(Objects::nonNull)
+                .map(Project::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (projectIds.isEmpty()) {
+            return List.of();
+        }
+
+        return projectMemberRepository.findByProjectIdInAndActiveTrue(projectIds);
+    }
+
     private long countProjectsByStatus(List<Project> projects, String status) {
+        return countProjectsByStatuses(projects, status);
+    }
+
+    private long countProjectsByStatuses(List<Project> projects, String... statuses) {
+        Set<String> allowedStatuses = Arrays.stream(statuses)
+                .filter(Objects::nonNull)
+                .map(String::toUpperCase)
+                .collect(Collectors.toSet());
+
         return projects.stream()
-                .filter(project -> status.equals(project.getStatus()))
+                .map(Project::getStatus)
+                .filter(Objects::nonNull)
+                .map(String::toUpperCase)
+                .filter(allowedStatuses::contains)
                 .count();
     }
 
@@ -412,14 +459,74 @@ public class DashboardController {
             List<TaskEntity> tasks) {
         return projects.stream()
                 .map(project -> mapToProjectSummary(currentUser, project, tasks))
+                .sorted(Comparator
+                        .comparingInt(this::projectAttentionRank)
+                        .thenComparing(ProjectSummaryDto::getMilestoneProgressPercentage,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(ProjectSummaryDto::getProjectName,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .limit(10)
                 .collect(Collectors.toList());
     }
 
     private List<EscalatedTaskDto> buildEscalatedTaskDetails(List<TaskEntity> tasks) {
         return tasks.stream()
                 .filter(task -> Boolean.TRUE.equals(task.getEscalated()))
+                .sorted(Comparator
+                        .comparingInt(this::escalationAttentionRank)
+                        .thenComparing(TaskEntity::getEscalationDate,
+                                Comparator.nullsLast(Comparator.naturalOrder())))
+                .limit(10)
                 .map(this::mapToEscalatedTaskDto)
                 .collect(Collectors.toList());
+    }
+
+    private int projectAttentionRank(ProjectSummaryDto project) {
+        if (project == null) {
+            return 99;
+        }
+
+        String projectStatus = project.getStatus() == null
+                ? ""
+                : project.getStatus().toUpperCase();
+        String milestoneStatus = project.getMilestoneStatus() == null
+                ? ""
+                : project.getMilestoneStatus().toUpperCase();
+
+        if ("DELAYED".equals(projectStatus) || "DELAYED".equals(milestoneStatus)) {
+            return 0;
+        }
+        if ("ON_HOLD".equals(projectStatus) || "ON_HOLD".equals(milestoneStatus)) {
+            return 1;
+        }
+        if (List.of("IN_PROGRESS", "GO_LIVE", "POST_LIVE", "ACTIVE").contains(projectStatus)) {
+            return 2;
+        }
+        return 3;
+    }
+
+    private int escalationAttentionRank(TaskEntity task) {
+        if (task == null) {
+            return 99;
+        }
+
+        String severity = task.getEscalationSeverity() == null
+                ? ""
+                : task.getEscalationSeverity().toUpperCase();
+        String status = task.getEscalationStatus() == null
+                ? ""
+                : task.getEscalationStatus().toUpperCase();
+
+        if ("CRITICAL".equals(severity) && "OPEN".equals(status)) {
+            return 0;
+        }
+        if ("HIGH".equals(severity) && "OPEN".equals(status)) {
+            return 1;
+        }
+        if ("OPEN".equals(status)) {
+            return 2;
+        }
+        return 3;
     }
 
     private EscalatedTaskDto mapToEscalatedTaskDto(TaskEntity task) {

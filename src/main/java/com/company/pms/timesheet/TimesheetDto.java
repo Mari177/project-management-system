@@ -51,5 +51,7 @@ public class TimesheetDto {
 
     private String rejectionReason;
 
+    private Long timeLogCount;
+
     private List<TimeLogDto> timeLogs;
 }

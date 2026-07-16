@@ -1,6 +1,8 @@
 package com.company.pms.timesheet;
 
 import com.company.pms.auth.AppUser;
+import com.company.pms.common.PageResponse;
+import com.company.pms.common.PaginationSupport;
 import com.company.pms.milestone.Milestone;
 import com.company.pms.project.Project;
 import com.company.pms.resource.ResourceEntity;
@@ -9,6 +11,13 @@ import com.company.pms.task.TaskEntity;
 import com.company.pms.task.TaskRepository;
 import com.company.pms.projectmember.ProjectMember;
 import com.company.pms.projectmember.ProjectMemberRepository;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +29,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -30,6 +40,15 @@ public class TimesheetService {
     private static final double HOURS_PER_DAY = 8.0;
     private static final double INR_PER_USD = 83.0;
     private static final double MAX_HOURS_PER_DAY = 12.0;
+
+    private static final Map<String, String> TIMESHEET_SORTS = Map.of(
+            "periodStart", "periodStart",
+            "periodEnd", "periodEnd",
+            "status", "status",
+            "submittedAt", "submittedAt",
+            "updatedAt", "updatedAt",
+            "id", "id"
+    );
 
     private final TimesheetRepository timesheetRepository;
     private final TimeLogRepository timeLogRepository;
@@ -49,6 +68,61 @@ public class TimesheetService {
         this.taskRepository = taskRepository;
         this.resourceRepository = resourceRepository;
         this.projectMemberRepository = projectMemberRepository;
+    }
+
+    public PageResponse<TimesheetDto> getTimesheetsPaged(
+            AppUser currentUser,
+            String view,
+            Integer page,
+            Integer size,
+            String search,
+            String status,
+            String periodStart,
+            String periodEnd,
+            String sort,
+            String direction) {
+
+        if (currentUser == null) {
+            throw new RuntimeException("User is not logged in");
+        }
+
+        String normalizedView = view == null || view.isBlank()
+                ? "ALL"
+                : view.trim().toUpperCase();
+
+        int defaultSize = "MY".equals(normalizedView) ? 12 : 20;
+        Pageable pageable = PaginationSupport.pageable(
+                page, size, defaultSize, 50, sort, direction, TIMESHEET_SORTS, "periodStart"
+        );
+
+        Specification<Timesheet> specification = buildPagedSpecification(
+                currentUser, normalizedView, search, status, periodStart, periodEnd
+        );
+
+        Page<Timesheet> entityPage = timesheetRepository.findAll(specification, pageable);
+
+        List<Long> timesheetIds = entityPage.getContent().stream()
+                .map(Timesheet::getId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        Map<Long, Long> timeLogCounts = timesheetIds.isEmpty()
+                ? Map.of()
+                : timeLogRepository.countByTimesheetIds(timesheetIds).stream()
+                        .collect(Collectors.toMap(
+                                row -> ((Number) row[0]).longValue(),
+                                row -> ((Number) row[1]).longValue()
+                        ));
+
+        List<TimesheetDto> summaries = entityPage.getContent().stream()
+                .map(timesheet -> mapToTimesheetSummaryDto(
+                        timesheet,
+                        timeLogCounts.getOrDefault(timesheet.getId(), 0L)
+                ))
+                .collect(Collectors.toList());
+
+        Page<TimesheetDto> dtoPage = new PageImpl<>(summaries, pageable, entityPage.getTotalElements());
+        return PageResponse.from(dtoPage);
     }
 
     public List<TimesheetDto> getTimesheetsForUser(AppUser currentUser) {
@@ -535,6 +609,141 @@ public class TimesheetService {
             costVariance
     );
 }
+
+    private Specification<Timesheet> buildPagedSpecification(
+            AppUser currentUser,
+            String view,
+            String search,
+            String status,
+            String periodStart,
+            String periodEnd) {
+
+        String normalizedSearch = PaginationSupport.normalized(search);
+        String normalizedStatus = PaginationSupport.normalizedUpper(status);
+        LocalDate startDate = parseOptionalDate(periodStart, "Invalid period start date");
+        LocalDate endDate = parseOptionalDate(periodEnd, "Invalid period end date");
+
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+            var resource = root.join("resource", JoinType.LEFT);
+            var ownerUser = resource.join("appUser", JoinType.LEFT);
+            var manager = ownerUser.join("managerUser", JoinType.LEFT);
+
+            if ("MY".equals(view)) {
+                predicates.add(criteriaBuilder.equal(ownerUser.get("id"), currentUser.getId()));
+            } else if ("PENDING".equals(view)) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), "PENDING_APPROVAL"));
+
+                if ("ADMIN".equals(currentUser.getRole())) {
+                    predicates.add(criteriaBuilder.or(
+                            criteriaBuilder.isNull(ownerUser.get("id")),
+                            criteriaBuilder.notEqual(ownerUser.get("id"), currentUser.getId())
+                    ));
+                } else if (hasTimesheetApprovalRole(currentUser)) {
+                    predicates.add(criteriaBuilder.equal(manager.get("id"), currentUser.getId()));
+                } else {
+                    predicates.add(criteriaBuilder.disjunction());
+                }
+            } else if (!"ADMIN".equals(currentUser.getRole())) {
+                Predicate own = criteriaBuilder.equal(ownerUser.get("id"), currentUser.getId());
+                Predicate directReport = criteriaBuilder.equal(manager.get("id"), currentUser.getId());
+                Predicate projectVisible = buildProjectVisiblePredicate(
+                        currentUser, root, query, criteriaBuilder
+                );
+                predicates.add(criteriaBuilder.or(own, directReport, projectVisible));
+            }
+
+            if (normalizedSearch != null) {
+                String contains = "%" + normalizedSearch + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(resource.get("resourceName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(resource.get("designation")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(ownerUser.get("username")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(manager.get("name")), contains)
+                ));
+            }
+
+            if (normalizedStatus != null && !"PENDING".equals(view)) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), normalizedStatus));
+            }
+
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("periodStart"), startDate));
+            }
+
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("periodEnd"), endDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private Predicate buildProjectVisiblePredicate(
+            AppUser currentUser,
+            jakarta.persistence.criteria.Root<Timesheet> timesheetRoot,
+            jakarta.persistence.criteria.CriteriaQuery<?> query,
+            jakarta.persistence.criteria.CriteriaBuilder criteriaBuilder) {
+
+        if (!List.of("DELIVERY_HEAD", "DELIVERY_MANAGER", "TL").contains(currentUser.getRole())) {
+            return criteriaBuilder.disjunction();
+        }
+
+        Subquery<Long> subquery = query.subquery(Long.class);
+        var log = subquery.from(TimeLog.class);
+        var project = log.join("project", JoinType.LEFT);
+
+        Predicate linkedTimesheet = criteriaBuilder.equal(
+                log.get("timesheet").get("id"),
+                timesheetRoot.get("id")
+        );
+
+        Predicate projectPredicate;
+
+        if ("DELIVERY_HEAD".equals(currentUser.getRole())) {
+            Predicate directlyMapped = criteriaBuilder.equal(
+                    project.join("deliveryHeadUser", JoinType.LEFT).get("id"),
+                    currentUser.getId()
+            );
+
+            Predicate sameCountry = currentUser.getCountry() == null || currentUser.getCountry().isBlank()
+                    ? criteriaBuilder.disjunction()
+                    : criteriaBuilder.equal(
+                            criteriaBuilder.upper(project.get("country")),
+                            currentUser.getCountry().trim().toUpperCase()
+                    );
+
+            projectPredicate = criteriaBuilder.or(directlyMapped, sameCountry);
+        } else if ("DELIVERY_MANAGER".equals(currentUser.getRole())) {
+            projectPredicate = criteriaBuilder.equal(
+                    project.join("deliveryManagerUser", JoinType.LEFT).get("id"),
+                    currentUser.getId()
+            );
+        } else {
+            projectPredicate = criteriaBuilder.equal(
+                    project.join("tlUser", JoinType.LEFT).get("id"),
+                    currentUser.getId()
+            );
+        }
+
+        subquery.select(log.get("id"))
+                .where(criteriaBuilder.and(linkedTimesheet, projectPredicate));
+
+        return criteriaBuilder.exists(subquery);
+    }
+
+    private LocalDate parseOptionalDate(String value, String errorMessage) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return LocalDate.parse(value.trim());
+        } catch (Exception exception) {
+            throw new RuntimeException(errorMessage);
+        }
+    }
 
     private Timesheet getTimesheetEntity(Long id) {
         if (id == null) {
@@ -1129,7 +1338,49 @@ public class TimesheetService {
                 approvedByName,
                 rejectedByName,
                 timesheet.getRejectionReason(),
+                (long) logs.size(),
                 logs);
+    }
+
+    private TimesheetDto mapToTimesheetSummaryDto(Timesheet timesheet, Long timeLogCount) {
+        Long resourceId = timesheet.getResource() != null ? timesheet.getResource().getId() : null;
+        String resourceName = timesheet.getResource() != null ? timesheet.getResource().getResourceName() : "N/A";
+        AppUser ownerUser = getTimesheetOwnerUser(timesheet);
+        AppUser reportingManager = ownerUser != null ? ownerUser.getManagerUser() : null;
+        Long reportingManagerUserId = reportingManager != null ? reportingManager.getId() : null;
+        String reportingManagerName = reportingManager != null ? reportingManager.getName() : null;
+        String reportingManagerDesignation = reportingManager != null ? reportingManager.getDesignation() : null;
+        Long submittedByUserId = timesheet.getSubmittedByUser() != null ? timesheet.getSubmittedByUser().getId() : null;
+        String submittedByName = timesheet.getSubmittedByUser() != null
+                ? timesheet.getSubmittedByUser().getName()
+                : "N/A";
+        String approvedByName = timesheet.getApprovedByUser() != null ? timesheet.getApprovedByUser().getName() : null;
+        String rejectedByName = timesheet.getRejectedByUser() != null ? timesheet.getRejectedByUser().getName() : null;
+
+        return new TimesheetDto(
+                timesheet.getId(),
+                resourceId,
+                resourceName,
+                reportingManagerUserId,
+                reportingManagerName,
+                reportingManagerDesignation,
+                submittedByUserId,
+                submittedByName,
+                timesheet.getPeriodStart(),
+                timesheet.getPeriodEnd(),
+                timesheet.getStatus(),
+                timesheet.getTotalHours(),
+                timesheet.getBillableHours(),
+                timesheet.getNonBillableHours(),
+                timesheet.getSubmittedAt(),
+                timesheet.getApprovedAt(),
+                timesheet.getRejectedAt(),
+                approvedByName,
+                rejectedByName,
+                timesheet.getRejectionReason(),
+                timeLogCount != null ? timeLogCount : 0L,
+                null
+        );
     }
 
     private TimeLogDto mapToTimeLogDto(TimeLog timeLog) {

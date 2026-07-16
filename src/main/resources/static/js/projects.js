@@ -11,6 +11,10 @@ const canManageProjectMembers = currentUser &&
     ["ADMIN", "DELIVERY_HEAD", "DELIVERY_MANAGER"].includes(currentUser.role);
 
 let projectsCache = [];
+let projectLookupCache = [];
+let projectPages = { IMPLEMENTATION: [], SUPPORT: [] };
+let projectPagers = {};
+let projectMembersPager = null;
 let clientsCache = [];
 let deliveryHeadsCache = [];
 let deliveryManagersCache = [];
@@ -29,6 +33,8 @@ function initializeProjectsPage() {
     bindMoveToSupportForm();
     bindCountryChange();
     bindProjectTypeChange();
+    initializeProjectPagination();
+    initializeProjectMemberPagination();
     loadInitialData();
 }
 
@@ -107,7 +113,9 @@ function bindProjectForm() {
             }
 
             resetProjectForm();
-            await loadProjects();
+            await loadProjectLookup();
+            await loadProjects(currentProjectTab);
+            PMS_UI?.toast?.(id ? "Project updated successfully." : "Project created successfully.", "success");
         } catch (error) {
             PMS.showError(error);
         }
@@ -151,6 +159,7 @@ function bindProjectMemberForm() {
 
             resetProjectMemberForm();
             await loadProjectMembers(selectedProjectForMembers.id);
+            PMS_UI?.toast?.(id ? "Project member updated successfully." : "Project member added successfully.", "success");
         } catch (error) {
             PMS.showError(error);
         }
@@ -204,7 +213,8 @@ async function loadInitialData() {
         await loadResourcesDropdown();
     }
 
-    await loadProjects();
+    await loadProjectLookup();
+    await loadProjects(currentProjectTab);
 }
 
 async function loadClientsDropdown() {
@@ -299,34 +309,150 @@ async function loadResourcesDropdown() {
     }
 }
 
-async function loadProjects() {
+function initializeProjectPagination() {
+    projectPagers.IMPLEMENTATION = PMS.createPagination({
+        key: "implementation-projects",
+        container: document.getElementById("implementationProjectsPanel"),
+        target: document.querySelector("#implementationProjectsPanel .table-wrapper"),
+        defaultSize: 20,
+        sizeOptions: [20, 50],
+        searchPlaceholder: "Search implementation projects, clients or owners",
+        filters: [
+            {
+                key: "status",
+                label: "Project status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "NOT_STARTED", label: "Not started" },
+                    { value: "IN_PROGRESS", label: "In progress" },
+                    { value: "GO_LIVE", label: "Go live" },
+                    { value: "POST_LIVE", label: "Post live" },
+                    { value: "DELAYED", label: "Delayed" },
+                    { value: "ON_HOLD", label: "On hold" },
+                    { value: "COMPLETED", label: "Completed" },
+                    { value: "MOVED_TO_SUPPORT", label: "Moved to support" }
+                ]
+            }
+        ],
+        onChange: () => loadProjects("IMPLEMENTATION")
+    });
+
+    projectPagers.SUPPORT = PMS.createPagination({
+        key: "support-projects",
+        container: document.getElementById("supportProjectsPanel"),
+        target: document.querySelector("#supportProjectsPanel .table-wrapper"),
+        defaultSize: 20,
+        sizeOptions: [20, 50],
+        searchPlaceholder: "Search support projects, clients or owners",
+        filters: [
+            {
+                key: "status",
+                label: "Support status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "ACTIVE", label: "Active" },
+                    { value: "ON_HOLD", label: "On hold" },
+                    { value: "CLOSED", label: "Closed" }
+                ]
+            }
+        ],
+        onChange: () => loadProjects("SUPPORT")
+    });
+}
+
+function initializeProjectMemberPagination() {
+    if (!canViewProjectMembers) {
+        return;
+    }
+
+    const table = document.getElementById("projectMembersTable");
+    projectMembersPager = PMS.createPagination({
+        key: "project-members",
+        container: document.getElementById("projectMembersSection"),
+        target: table.closest(".table-wrapper"),
+        defaultSize: 15,
+        sizeOptions: [15, 30, 50],
+        searchPlaceholder: "Search members, project role or reporting manager",
+        filters: [
+            {
+                key: "active",
+                label: "Member status",
+                options: [
+                    { value: "", label: "All members" },
+                    { value: "true", label: "Active" },
+                    { value: "false", label: "Inactive" }
+                ]
+            },
+            {
+                key: "billable",
+                label: "Billing status",
+                options: [
+                    { value: "", label: "All billing types" },
+                    { value: "true", label: "Billable" },
+                    { value: "false", label: "Non-billable" }
+                ]
+            }
+        ],
+        onChange: () => {
+            if (selectedProjectForMembers) {
+                loadProjectMembers(selectedProjectForMembers.id);
+            }
+        }
+    });
+}
+
+async function loadProjectLookup() {
     try {
         const projects = await PMS.apiGet(PMS.getProjectsApi());
-        projectsCache = projects || [];
+        projectLookupCache = projects || [];
         populateLinkedImplementationDropdown();
-        renderProjects();
     } catch (error) {
         PMS.showError(error);
     }
 }
 
-function setProjectTab(tab) {
-    currentProjectTab = tab;
-    renderProjects();
+async function loadProjects(projectType = currentProjectTab) {
+    const normalizedType = String(projectType || "IMPLEMENTATION").toUpperCase();
+    const pager = projectPagers[normalizedType];
+
+    try {
+        const query = pager.buildParams({
+            projectType: normalizedType,
+            sort: "id",
+            direction: "desc"
+        });
+
+        const response = await PMS.apiGet(`/api/projects/paged?${query}`);
+        projectPages[normalizedType] = response.content || [];
+        projectsCache = [
+            ...projectPages.IMPLEMENTATION,
+            ...projectPages.SUPPORT
+        ];
+
+        if (normalizedType === "IMPLEMENTATION") {
+            renderImplementationProjects(projectPages.IMPLEMENTATION);
+        } else {
+            renderSupportProjects(projectPages.SUPPORT);
+        }
+
+        pager.update(response);
+    } catch (error) {
+        PMS.showError(error);
+    }
 }
 
-function renderProjects() {
-    const implementationProjects = projectsCache.filter(project => getProjectType(project) === "IMPLEMENTATION");
-    const supportProjects = projectsCache.filter(project => getProjectType(project) === "SUPPORT");
+async function setProjectTab(tab) {
+    currentProjectTab = tab;
 
     toggleElement("implementationProjectsPanel", currentProjectTab === "IMPLEMENTATION");
     toggleElement("supportProjectsPanel", currentProjectTab === "SUPPORT");
 
-    document.getElementById("implementationTabBtn").classList.toggle("active", currentProjectTab === "IMPLEMENTATION");
-    document.getElementById("supportTabBtn").classList.toggle("active", currentProjectTab === "SUPPORT");
+    document.getElementById("implementationTabBtn")
+        .classList.toggle("active", currentProjectTab === "IMPLEMENTATION");
+    document.getElementById("supportTabBtn")
+        .classList.toggle("active", currentProjectTab === "SUPPORT");
 
-    renderImplementationProjects(implementationProjects);
-    renderSupportProjects(supportProjects);
+    await loadProjects(currentProjectTab);
 }
 
 function renderImplementationProjects(projects) {
@@ -498,7 +624,8 @@ async function deleteProject(id) {
 
     try {
         await PMS.apiDelete(`/api/projects/${id}`);
-        await loadProjects();
+        await loadProjectLookup();
+        await loadProjects(currentProjectTab);
     } catch (error) {
         PMS.showError(error);
     }
@@ -551,7 +678,8 @@ async function submitMoveToSupport() {
         await PMS.apiPost(`/api/projects/${projectId}/move-to-support`, payload);
         closeMoveToSupportModal();
         currentProjectTab = "SUPPORT";
-        await loadProjects();
+        await loadProjectLookup();
+        await loadProjects(currentProjectTab);
     } catch (error) {
         PMS.showError(error);
     }
@@ -586,6 +714,7 @@ async function selectProjectMembers(projectId) {
     ].filter(Boolean).join(" | ");
 
     resetProjectMemberForm(false);
+    projectMembersPager?.reset();
     await loadProjectMembers(project.id);
 
     document.getElementById("projectMembersSection")
@@ -603,9 +732,14 @@ async function reloadSelectedProjectMembers() {
 
 async function loadProjectMembers(projectId) {
     try {
-        const members = await PMS.apiGet(`/api/project-members/project/${projectId}`);
-        projectMembersCache = members || [];
+        const query = projectMembersPager.buildParams({
+            sort: "id",
+            direction: "asc"
+        });
+        const response = await PMS.apiGet(`/api/project-members/project/${projectId}/paged?${query}`);
+        projectMembersCache = response.content || [];
         renderProjectMembers(projectMembersCache);
+        projectMembersPager.update(response);
     } catch (error) {
         PMS.showError(error);
     }
@@ -695,7 +829,11 @@ async function deleteProjectMember(id) {
 
     try {
         await PMS.apiDelete(`/api/project-members/${id}`);
+        if (projectMembersCache.length === 1 && projectMembersPager.state.page > 0) {
+            projectMembersPager.setPage(projectMembersPager.state.page - 1);
+        }
         await loadProjectMembers(selectedProjectForMembers.id);
+        PMS_UI?.toast?.("Project member removed successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }
@@ -761,7 +899,7 @@ function populateLinkedImplementationDropdown() {
     }
 
     const currentValue = select.value;
-    const implementationProjects = projectsCache.filter(project => getProjectType(project) === "IMPLEMENTATION");
+    const implementationProjects = projectLookupCache.filter(project => getProjectType(project) === "IMPLEMENTATION");
 
     select.innerHTML = `<option value="">Select Implementation Project</option>`;
 

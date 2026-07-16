@@ -2,36 +2,58 @@ package com.company.pms.supportticket;
 
 import com.company.pms.auth.AppUser;
 import com.company.pms.auth.AppUserRepository;
+import com.company.pms.common.PaginationSupport;
 import com.company.pms.project.Project;
 import com.company.pms.project.ProjectRepository;
+import com.company.pms.projectmember.ProjectMember;
+import com.company.pms.projectmember.ProjectMemberRepository;
 import com.company.pms.resource.ResourceEntity;
 import com.company.pms.resource.ResourceRepository;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/support-tickets")
 public class SupportTicketController {
 
+    private static final Map<String, String> TICKET_SORTS = Map.of(
+            "reportedAt", "reportedAt",
+            "priority", "priority",
+            "status", "status",
+            "ticketCode", "ticketCode",
+            "id", "id"
+    );
+
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketCodeService supportTicketCodeService;
     private final ProjectRepository projectRepository;
     private final ResourceRepository resourceRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final AppUserRepository appUserRepository;
 
     public SupportTicketController(SupportTicketRepository supportTicketRepository,
                                    SupportTicketCodeService supportTicketCodeService,
                                    ProjectRepository projectRepository,
                                    ResourceRepository resourceRepository,
+                                   ProjectMemberRepository projectMemberRepository,
                                    AppUserRepository appUserRepository) {
         this.supportTicketRepository = supportTicketRepository;
         this.supportTicketCodeService = supportTicketCodeService;
         this.projectRepository = projectRepository;
         this.resourceRepository = resourceRepository;
+        this.projectMemberRepository = projectMemberRepository;
         this.appUserRepository = appUserRepository;
     }
 
@@ -44,6 +66,50 @@ public class SupportTicketController {
         validateCanViewSupportProject(currentUser, supportProject);
 
         return supportTicketRepository.findBySupportProjectIdOrderByReportedAtDesc(projectId);
+    }
+
+    @GetMapping("/project/{projectId}/paged")
+    public SupportTicketPageResponse getTicketsByProjectPaged(
+            @PathVariable Long projectId,
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String ticketType,
+            @RequestParam(required = false) Long assignedResourceId,
+            @RequestParam(defaultValue = "reportedAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+
+        AppUser currentUser = getCurrentUser(authentication);
+        Project supportProject = getSupportProject(projectId);
+        validateCanViewSupportProject(currentUser, supportProject);
+
+        Pageable pageable = PaginationSupport.pageable(
+                page, size, 20, 50, sort, direction, TICKET_SORTS, "reportedAt"
+        );
+
+        Specification<SupportTicket> baseSpecification = buildPagedSpecification(
+                projectId, search, status, priority, ticketType, assignedResourceId
+        );
+
+        Page<SupportTicket> result = supportTicketRepository.findAll(baseSpecification, pageable);
+
+        Specification<SupportTicket> summaryBase = buildPagedSpecification(
+                projectId, search, null, priority, ticketType, assignedResourceId
+        );
+
+        long totalTickets = supportTicketRepository.count(summaryBase);
+        long openTickets = supportTicketRepository.count(summaryBase.and(statusIn(
+                "NEW", "ACKNOWLEDGED", "IN_PROGRESS", "WAITING_FOR_CLIENT", "WAITING_FOR_INTERNAL", "REOPENED"
+        )));
+        long resolvedTickets = supportTicketRepository.count(summaryBase.and(statusIn("RESOLVED")));
+        long closedTickets = supportTicketRepository.count(summaryBase.and(statusIn("CLOSED")));
+
+        return SupportTicketPageResponse.from(
+                result, totalTickets, openTickets, resolvedTickets, closedTickets
+        );
     }
 
     @GetMapping("/{id}")
@@ -113,6 +179,64 @@ public class SupportTicketController {
         supportTicketRepository.deleteById(id);
     }
 
+    private Specification<SupportTicket> buildPagedSpecification(
+            Long projectId,
+            String search,
+            String status,
+            String priority,
+            String ticketType,
+            Long assignedResourceId) {
+
+        String normalizedSearch = PaginationSupport.normalized(search);
+        String normalizedStatus = PaginationSupport.normalizedUpper(status);
+        String normalizedPriority = PaginationSupport.normalizedUpper(priority);
+        String normalizedType = PaginationSupport.normalizedUpper(ticketType);
+
+        return (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("supportProject").get("id"), projectId));
+
+            if (normalizedSearch != null) {
+                String contains = "%" + normalizedSearch + "%";
+                var assignedResource = root.join("assignedResource", JoinType.LEFT);
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("ticketCode")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("description")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("moduleName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("reportedByName")), contains),
+                        criteriaBuilder.like(criteriaBuilder.lower(assignedResource.get("resourceName")), contains)
+                ));
+            }
+
+            if (normalizedStatus != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("status")), normalizedStatus));
+            }
+
+            if (normalizedPriority != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("priority")), normalizedPriority));
+            }
+
+            if (normalizedType != null) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.upper(root.get("ticketType")), normalizedType));
+            }
+
+            if (assignedResourceId != null) {
+                predicates.add(criteriaBuilder.equal(
+                        root.join("assignedResource", JoinType.LEFT).get("id"),
+                        assignedResourceId
+                ));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private Specification<SupportTicket> statusIn(String... statuses) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.upper(root.get("status")).in(Arrays.asList(statuses));
+    }
+
     private void mapRequestToTicket(SupportTicketRequest request,
                                     SupportTicket ticket,
                                     boolean updateMode) {
@@ -136,9 +260,30 @@ public class SupportTicketController {
         if (request.getAssignedResourceId() != null) {
             ResourceEntity resource = resourceRepository.findById(request.getAssignedResourceId())
                     .orElseThrow(() -> new RuntimeException("Assigned resource not found"));
+
+            validateTicketAssignee(ticket.getSupportProject(), resource);
             ticket.setAssignedResource(resource);
         } else if (updateMode) {
             ticket.setAssignedResource(null);
+        }
+    }
+
+    private void validateTicketAssignee(Project supportProject, ResourceEntity resource) {
+        if (supportProject == null || supportProject.getId() == null) {
+            throw new RuntimeException("Support project is required before assigning a resource");
+        }
+
+        if (resource.getStatus() == null || !"ACTIVE".equalsIgnoreCase(resource.getStatus())) {
+            throw new RuntimeException("Only an active resource can be assigned to a support ticket");
+        }
+
+        ProjectMember member = projectMemberRepository
+                .findByProjectIdAndResourceId(supportProject.getId(), resource.getId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Assigned resource must be an allocated member of the support project"));
+
+        if (!Boolean.TRUE.equals(member.getActive())) {
+            throw new RuntimeException("Assigned resource is not an active member of the support project");
         }
     }
 

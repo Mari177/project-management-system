@@ -11,12 +11,15 @@ let supportProjectsCache = [];
 let resourcesCache = [];
 let ticketsCache = [];
 let selectedSupportProject = null;
+let ticketsPager = null;
+let ticketSummary = { totalTickets: 0, openTickets: 0, resolvedTickets: 0, closedTickets: 0 };
 
 initializeSupportTicketsPage();
 
 async function initializeSupportTicketsPage() {
     configureTicketPageByRole();
     bindTicketForm();
+    initializeTicketPagination();
 
     try {
         await loadReferenceData();
@@ -24,6 +27,64 @@ async function initializeSupportTicketsPage() {
     } catch (error) {
         PMS.showError(error);
     }
+}
+
+function initializeTicketPagination() {
+    const list = document.getElementById("supportTicketsList");
+    const container = list.closest(".support-ticket-right");
+
+    ticketsPager = PMS.createPagination({
+        key: "support-tickets",
+        container,
+        target: list,
+        defaultSize: 20,
+        sizeOptions: [20, 50],
+        searchPlaceholder: "Search ticket code, title, module, reporter or assignee",
+        filters: [
+            {
+                key: "status",
+                label: "Ticket status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "NEW", label: "New" },
+                    { value: "ACKNOWLEDGED", label: "Acknowledged" },
+                    { value: "IN_PROGRESS", label: "In progress" },
+                    { value: "WAITING_FOR_CLIENT", label: "Waiting for client" },
+                    { value: "WAITING_FOR_INTERNAL", label: "Waiting for internal" },
+                    { value: "RESOLVED", label: "Resolved" },
+                    { value: "CLOSED", label: "Closed" },
+                    { value: "REOPENED", label: "Reopened" }
+                ]
+            },
+            {
+                key: "priority",
+                label: "Priority",
+                options: [
+                    { value: "", label: "All priorities" },
+                    { value: "P1", label: "P1 - Critical" },
+                    { value: "P2", label: "P2 - High" },
+                    { value: "P3", label: "P3 - Medium" },
+                    { value: "P4", label: "P4 - Low" }
+                ]
+            },
+            {
+                key: "ticketType",
+                label: "Ticket type",
+                options: [
+                    { value: "", label: "All types" },
+                    { value: "INCIDENT", label: "Incident" },
+                    { value: "SERVICE_REQUEST", label: "Service request" },
+                    { value: "CHANGE_REQUEST", label: "Change request" },
+                    { value: "PROBLEM", label: "Problem" }
+                ]
+            }
+        ],
+        onChange: () => {
+            if (selectedSupportProject) {
+                loadTickets(selectedSupportProject.id);
+            }
+        }
+    });
 }
 
 function configureTicketPageByRole() {
@@ -56,14 +117,42 @@ function bindTicketForm() {
 
 async function loadReferenceData() {
     const projects = await PMS.apiGet(PMS.getProjectsApi());
-    supportProjectsCache = (projects || []).filter(project => getProjectType(project) === "SUPPORT");
+    supportProjectsCache = (projects || []).filter(
+        project => getProjectType(project) === "SUPPORT"
+    );
+
     populateSupportProjectDropdown();
 
-    if (canManageTickets) {
-        const resources = await PMS.apiGet("/api/resources");
-        resourcesCache = resources || [];
+    resourcesCache = [];
+    populateResourceDropdown();
+}
+
+async function loadAssignableResources(projectId) {
+    if (!canManageTickets || !projectId) {
+        resourcesCache = [];
         populateResourceDropdown();
+        return;
     }
+
+    const members = await PMS.apiGet(
+        `/api/project-members/project/${projectId}/active`
+    );
+
+    const uniqueResources = new Map();
+
+    (members || []).forEach(member => {
+        const resource = member.resource;
+
+        if (resource && resource.id) {
+            uniqueResources.set(resource.id, resource);
+        }
+    });
+
+    resourcesCache = Array.from(uniqueResources.values())
+        .sort((left, right) => String(left.resourceName || "")
+            .localeCompare(String(right.resourceName || "")));
+
+    populateResourceDropdown();
 }
 
 function populateSupportProjectDropdown() {
@@ -128,12 +217,27 @@ async function handleSupportProjectChange() {
     const projectId = Number(document.getElementById("supportProjectId").value || 0);
 
     selectedSupportProject = supportProjectsCache.find(project => project.id === projectId) || null;
+    ticketsPager.reset();
     resetTicketForm();
     renderSupportProjectSummary();
 
+    await loadAssignableResources(
+        selectedSupportProject ? selectedSupportProject.id : null
+    );
+
     if (!selectedSupportProject) {
         ticketsCache = [];
+        ticketSummary = { totalTickets: 0, openTickets: 0, resolvedTickets: 0, closedTickets: 0 };
         renderTickets();
+        ticketsPager.update({
+            page: 0,
+            size: ticketsPager.state.size,
+            numberOfElements: 0,
+            totalElements: 0,
+            totalPages: 0,
+            first: true,
+            last: true
+        });
         return;
     }
 
@@ -151,9 +255,22 @@ async function reloadTickets() {
 
 async function loadTickets(projectId) {
     try {
-        const tickets = await PMS.apiGet(`/api/support-tickets/project/${projectId}`);
-        ticketsCache = tickets || [];
+        const query = ticketsPager.buildParams({
+            sort: "reportedAt",
+            direction: "desc"
+        });
+        const response = await PMS.apiGet(
+            `/api/support-tickets/project/${projectId}/paged?${query}`
+        );
+        ticketsCache = response.content || [];
+        ticketSummary = {
+            totalTickets: response.totalTickets || 0,
+            openTickets: response.openTickets || 0,
+            resolvedTickets: response.resolvedTickets || 0,
+            closedTickets: response.closedTickets || 0
+        };
         renderTickets();
+        ticketsPager.update(response);
     } catch (error) {
         PMS.showError(error);
     }
@@ -191,6 +308,7 @@ async function saveTicket() {
 
         resetTicketForm();
         await loadTickets(selectedSupportProject.id);
+        PMS_UI?.toast?.(id ? "Support ticket updated successfully." : "Support ticket created successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }
@@ -383,15 +501,10 @@ function renderTicketCard(ticket) {
 }
 
 function renderTicketSummary() {
-    const total = ticketsCache.length;
-    const open = ticketsCache.filter(ticket => !["RESOLVED", "CLOSED", "CANCELLED"].includes(String(ticket.status || "NEW"))).length;
-    const resolved = ticketsCache.filter(ticket => String(ticket.status) === "RESOLVED").length;
-    const closed = ticketsCache.filter(ticket => String(ticket.status) === "CLOSED").length;
-
-    document.getElementById("totalTicketsCount").innerText = total;
-    document.getElementById("openTicketsCount").innerText = open;
-    document.getElementById("resolvedTicketsCount").innerText = resolved;
-    document.getElementById("closedTicketsCount").innerText = closed;
+    document.getElementById("totalTicketsCount").innerText = ticketSummary.totalTickets || 0;
+    document.getElementById("openTicketsCount").innerText = ticketSummary.openTickets || 0;
+    document.getElementById("resolvedTicketsCount").innerText = ticketSummary.resolvedTickets || 0;
+    document.getElementById("closedTicketsCount").innerText = ticketSummary.closedTickets || 0;
 }
 
 function editTicket(id) {
@@ -434,7 +547,11 @@ async function deleteTicket(id) {
 
     try {
         await PMS.apiDelete(`/api/support-tickets/${id}`);
+        if (ticketsCache.length === 1 && ticketsPager.state.page > 0) {
+            ticketsPager.setPage(ticketsPager.state.page - 1);
+        }
         await loadTickets(selectedSupportProject.id);
+        PMS_UI?.toast?.("Support ticket deleted successfully.", "success");
     } catch (error) {
         PMS.showError(error);
     }

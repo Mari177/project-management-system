@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PMS Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="css/style.css">
@@ -43,13 +44,18 @@
                 </div>
 
                 <div class="cost_card">
-                    <div class="metric-title">Total Cost ($)</div>
+                    <div class="metric-title">Approved Actual Cost (USD)</div>
                     <div class="metric-value" id="totalCost">$0.00</div>
                 </div>
 
                 <div class="card">
-                    <div class="metric-title">Total Resources</div>
+                    <div class="metric-title">Active Resources</div>
                     <div class="metric-value" id="totalResources">0</div>
+                </div>
+
+                <div class="card">
+                    <div class="metric-title">Active Allocations</div>
+                    <div class="metric-value" id="totalAllocations">0</div>
                 </div>
 
                 <div class="card">
@@ -85,7 +91,10 @@
 
             <section class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Project Report Summary</h2>
+                    <div>
+                        <h2 class="section-title">Project Health — Priority 10</h2>
+                        <p class="section-subtitle">The ten accessible projects requiring the most attention, ordered by delivery status and milestone progress.</p>
+                    </div>
                 </div>
 
                 <div class="table-wrapper">
@@ -111,7 +120,10 @@
 
             <section class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Escalated Tasks</h2>
+                    <div>
+                        <h2 class="section-title">Priority Escalations — Top 10</h2>
+                        <p class="section-subtitle">Open critical and high-severity escalations are shown first.</p>
+                    </div>
                 </div>
 
                 <div class="table-wrapper">

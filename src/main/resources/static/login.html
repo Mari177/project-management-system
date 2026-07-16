@@ -35,6 +35,16 @@
         class="login-brand-panel"
         aria-label="Nija Technologies Project Management System"
     >
+        <div
+            class="brand-decoration brand-decoration-one"
+            aria-hidden="true"
+        ></div>
+
+        <div
+            class="brand-decoration brand-decoration-two"
+            aria-hidden="true"
+        ></div>
+
         <div class="brand-content">
 
             <div class="brand-logo-wrap">
@@ -50,12 +60,12 @@
             </p>
 
             <h1>
-                Manage delivery with clarity.
+                Keep every delivery commitment visible.
             </h1>
 
             <p class="brand-description">
-                One secure workspace for projects, milestones,
-                resources, tasks, timesheets, approvals and
+                A structured workspace for project execution,
+                resource ownership, timesheet governance and
                 support operations.
             </p>
 
@@ -63,71 +73,103 @@
                 class="feature-grid"
                 aria-label="Platform capabilities"
             >
-                <div class="feature-item">
+                <article class="feature-item">
+
                     <span
                         class="feature-icon"
                         aria-hidden="true"
                     >
-                        01
+                        <svg
+                            viewBox="0 0 24 24"
+                            focusable="false"
+                        >
+                            <path
+                                d="M4 4h7v7H4V4Zm9 0h7v5h-7V4ZM4 13h7v7H4v-7Zm9-2h7v9h-7v-9Z"
+                            />
+                        </svg>
                     </span>
 
                     <div>
                         <strong>
-                            Project visibility
+                            Delivery visibility
                         </strong>
 
                         <span>
-                            Track delivery from implementation
-                            to support.
+                            See projects, milestones,
+                            priorities and risks in one place.
                         </span>
                     </div>
-                </div>
+                </article>
 
-                <div class="feature-item">
+                <article class="feature-item">
+
                     <span
                         class="feature-icon"
                         aria-hidden="true"
                     >
-                        02
+                        <svg
+                            viewBox="0 0 24 24"
+                            focusable="false"
+                        >
+                            <path
+                                d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20v-1c0-3.31 2.69-6 6-6s6 2.69 6 6v1H2Zm12.5 0v-1c0-1.89-.7-3.62-1.85-4.94A5.98 5.98 0 0 1 22 19v1h-7.5Z"
+                            />
+                        </svg>
                     </span>
 
                     <div>
                         <strong>
-                            Team accountability
+                            Clear accountability
                         </strong>
 
                         <span>
-                            See ownership, reporting lines and
-                            current workload.
+                            Understand ownership, reporting
+                            lines and current workload.
                         </span>
                     </div>
-                </div>
+                </article>
 
-                <div class="feature-item">
+                <article class="feature-item">
+
                     <span
                         class="feature-icon"
                         aria-hidden="true"
                     >
-                        03
+                        <svg
+                            viewBox="0 0 24 24"
+                            focusable="false"
+                        >
+                            <path
+                                d="M9.2 16.2 4.8 11.8 3.4 13.2 9.2 19 21 7.2 19.6 5.8 9.2 16.2Z"
+                            />
+                        </svg>
                     </span>
 
                     <div>
                         <strong>
-                            Controlled approvals
+                            Governed approvals
                         </strong>
 
                         <span>
-                            Submit and approve timesheets
-                            through the hierarchy.
+                            Move timesheets and operational
+                            decisions through the right hierarchy.
                         </span>
                     </div>
-                </div>
+                </article>
             </div>
         </div>
 
-        <p class="brand-footer">
-            Nija Technologies · Project Management System
-        </p>
+        <div class="brand-footer">
+
+            <span
+                class="brand-footer-dot"
+                aria-hidden="true"
+            ></span>
+
+            <span>
+                Nija Technologies · Project Management System
+            </span>
+        </div>
     </section>
 
     <section class="login-form-panel">
@@ -143,17 +185,37 @@
         <div class="login-form-card">
 
             <div class="form-heading">
+
+                <div class="workspace-label">
+
+                    <span
+                        class="workspace-label-icon"
+                        aria-hidden="true"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            focusable="false"
+                        >
+                            <path
+                                d="M12 2 4 5.5V11c0 5.05 3.41 9.76 8 11 4.59-1.24 8-5.95 8-11V5.5L12 2Zm0 3.18 5 2.19V11c0 3.57-2.16 6.98-5 8.16C9.16 17.98 7 14.57 7 11V7.37l5-2.19Z"
+                            />
+                        </svg>
+                    </span>
+
+                    Secure company workspace
+                </div>
+
                 <p class="form-kicker">
                     Welcome back
                 </p>
 
                 <h2>
-                    Sign in to your workspace
+                    Sign in to continue
                 </h2>
 
                 <p>
-                    Use your assigned company credentials
-                    to continue.
+                    Enter the credentials assigned to your
+                    company account.
                 </p>
             </div>
 
@@ -162,11 +224,13 @@
                 novalidate
             >
                 <div class="field-group">
+
                     <label for="username">
                         Username
                     </label>
 
                     <div class="input-wrap">
+
                         <span
                             class="input-icon"
                             aria-hidden="true"
@@ -200,11 +264,13 @@
                 </div>
 
                 <div class="field-group">
+
                     <label for="password">
                         Password
                     </label>
 
                     <div class="input-wrap">
+
                         <span
                             class="input-icon"
                             aria-hidden="true"
@@ -263,6 +329,20 @@
                     </span>
 
                     <span
+                        class="button-arrow"
+                        aria-hidden="true"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            focusable="false"
+                        >
+                            <path
+                                d="m13.3 5.3-1.4 1.4 4.3 4.3H4v2h12.2l-4.3 4.3 1.4 1.4L20 12l-6.7-6.7Z"
+                            />
+                        </svg>
+                    </span>
+
+                    <span
                         class="button-spinner"
                         aria-hidden="true"
                     ></span>
@@ -270,6 +350,7 @@
             </form>
 
             <div class="security-note">
+
                 <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -281,8 +362,8 @@
                 </svg>
 
                 <span>
-                    Your session is protected and role-based
-                    access is enforced.
+                    Your session is protected and access is
+                    controlled by your assigned role.
                 </span>
             </div>
         </div>

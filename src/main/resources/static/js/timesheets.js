@@ -28,12 +28,14 @@ let tasksCache = [];
 let timesheetsCache = [];
 let selectedTimesheet = null;
 let currentTimesheetView = "my";
+let timesheetsPager = null;
 
 initializeTimesheetPage();
 
 async function initializeTimesheetPage() {
     configurePageByRole();
     bindForms();
+    initializeTimesheetPagination();
 
     try {
         await loadReferenceData();
@@ -41,6 +43,35 @@ async function initializeTimesheetPage() {
     } catch (error) {
         PMS.showError(error);
     }
+}
+
+function initializeTimesheetPagination() {
+    const list = document.getElementById("timesheetsList");
+    const card = list.closest(".timesheet-list-card");
+
+    timesheetsPager = PMS.createPagination({
+        key: "timesheets",
+        container: card,
+        target: list,
+        defaultSize: 12,
+        sizeOptions: [12, 20, 48],
+        searchPlaceholder: "Search employee or reporting manager",
+        filters: [
+            {
+                key: "status",
+                label: "Timesheet status",
+                options: [
+                    { value: "", label: "All statuses" },
+                    { value: "DRAFT", label: "Draft" },
+                    { value: "PENDING_APPROVAL", label: "Pending approval" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                    { value: "RECALLED", label: "Recalled" }
+                ]
+            }
+        ],
+        onChange: loadTimesheets
+    });
 }
 
 function configurePageByRole() {
@@ -90,26 +121,33 @@ function bindForms() {
 }
 
 async function loadReferenceData() {
-    const taskPromise =
-        PMS.apiGet(PMS.getTasksApi());
-
     const resourcePromise =
         isAdmin
             ? PMS.apiGet("/api/resources")
             : Promise.resolve([]);
 
-    const [tasks, resources] =
-        await Promise.all([
-            taskPromise,
-            resourcePromise
-        ]);
+    resourcesCache =
+        await resourcePromise
+        || [];
 
-    tasksCache = tasks || [];
-    resourcesCache = resources || [];
+    tasksCache = [];
 
     if (isAdmin) {
         populateResourceDropdown();
     }
+}
+
+async function loadTasksForResource(resourceId) {
+    if (!resourceId) {
+        tasksCache = [];
+        return;
+    }
+
+    tasksCache =
+        await PMS.apiGet(
+            `/api/tasks/resource/${resourceId}`
+        )
+        || [];
 }
 
 function populateResourceDropdown() {
@@ -166,48 +204,30 @@ async function setTimesheetView(view) {
 
     resetSelectedTimesheetBox();
     resetTimeLogForm();
+    timesheetsPager.reset();
+    timesheetsPager.setSize(view === "my" ? 12 : 20);
 
     await loadTimesheets();
 }
 
 async function loadTimesheets() {
     try {
-        const endpoint =
-            getTimesheetEndpoint();
+        const query = timesheetsPager.buildParams({
+            view: currentTimesheetView,
+            sort: "periodStart",
+            direction: "desc"
+        });
 
-        const data =
-            await PMS.apiGet(endpoint);
+        const response = await PMS.apiGet(`/api/timesheets/paged?${query}`);
+        timesheetsCache = response.content || [];
 
-        timesheetsCache =
-            data || [];
-
-        renderTimesheets(
-            timesheetsCache
-        );
-
+        renderTimesheets(timesheetsCache);
+        timesheetsPager.update(response);
         updateTimesheetListTitle();
         updateViewButtons();
     } catch (error) {
         PMS.showError(error);
     }
-}
-
-function getTimesheetEndpoint() {
-    if (
-        currentTimesheetView
-        === "pending"
-    ) {
-        return "/api/timesheets/pending-approval";
-    }
-
-    if (
-        currentTimesheetView
-        === "all"
-    ) {
-        return "/api/timesheets";
-    }
-
-    return "/api/timesheets/my";
 }
 
 function updateTimesheetListTitle() {
@@ -613,8 +633,9 @@ async function createTimesheet() {
             )
             .reset();
 
-        currentTimesheetView =
-            "my";
+        currentTimesheetView = "my";
+        timesheetsPager.reset();
+        timesheetsPager.setSize(12);
 
         await loadTimesheets();
 
@@ -637,6 +658,11 @@ async function selectTimesheet(id) {
             await PMS.apiGet(
                 `/api/timesheets/${id}`
             );
+
+        await loadTasksForResource(
+            selectedTimesheet.resourceId
+        );
+
 
         renderSelectedTimesheet(
             selectedTimesheet
@@ -1928,6 +1954,11 @@ async function refreshSelectedTimesheet() {
         await PMS.apiGet(
             `/api/timesheets/${selectedTimesheet.id}`
         );
+
+    await loadTasksForResource(
+        selectedTimesheet.resourceId
+    );
+
 
     renderSelectedTimesheet(
         selectedTimesheet

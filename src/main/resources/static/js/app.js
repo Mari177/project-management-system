@@ -763,6 +763,305 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+    function createPagination(options) {
+        const container = typeof options.container === "string"
+            ? document.querySelector(options.container)
+            : options.container;
+
+        const target = typeof options.target === "string"
+            ? document.querySelector(options.target)
+            : options.target;
+
+        if (!container || !target) {
+            throw new Error("Pagination container or target was not found");
+        }
+
+        const existing = container.querySelector(
+            `[data-pagination-key="${escapeHtml(options.key)}"]`
+        );
+
+        if (existing) {
+            existing.remove();
+        }
+
+        const state = {
+            page: 0,
+            size: options.defaultSize || 20,
+            search: "",
+            filters: {},
+            totalPages: 0,
+            totalElements: 0,
+            first: true,
+            last: true
+        };
+
+        const sizeOptions = options.sizeOptions || [20, 50, 100];
+        const filters = options.filters || [];
+        const wrapper = document.createElement("div");
+        wrapper.className = "pms-server-pagination";
+        wrapper.dataset.paginationKey = options.key;
+
+        const toolbar = document.createElement("div");
+        toolbar.className = "pms-server-toolbar";
+        toolbar.innerHTML = `
+            <div class="pms-server-toolbar-main">
+                <label class="pms-server-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input
+                        type="search"
+                        placeholder="${escapeHtml(options.searchPlaceholder || "Search records")}"
+                        aria-label="${escapeHtml(options.searchPlaceholder || "Search records")}">
+                    <button type="button" class="pms-search-clear" aria-label="Clear search" hidden>
+                        <i class="bi bi-x-circle-fill" aria-hidden="true"></i>
+                    </button>
+                </label>
+
+                <div class="pms-server-filters"></div>
+            </div>
+
+            <div class="pms-server-toolbar-side">
+                <label class="pms-page-size-label">
+                    <span>Rows</span>
+                    <select class="pms-page-size" aria-label="Rows per page">
+                        ${sizeOptions.map(value => `
+                            <option value="${value}" ${Number(value) === Number(state.size) ? "selected" : ""}>
+                                ${value}
+                            </option>
+                        `).join("")}
+                    </select>
+                </label>
+            </div>
+        `;
+
+        const filterContainer = toolbar.querySelector(".pms-server-filters");
+
+        filters.forEach(filter => {
+            const label = document.createElement("label");
+            label.className = "pms-filter-control";
+            label.innerHTML = `
+                <span class="sr-only">${escapeHtml(filter.label || filter.key)}</span>
+                <select data-filter-key="${escapeHtml(filter.key)}" aria-label="${escapeHtml(filter.label || filter.key)}">
+                    ${(filter.options || []).map(option => `
+                        <option value="${escapeHtml(option.value ?? "")}">
+                            ${escapeHtml(option.label)}
+                        </option>
+                    `).join("")}
+                </select>
+            `;
+            filterContainer.appendChild(label);
+            state.filters[filter.key] = "";
+        });
+
+        const footer = document.createElement("div");
+        footer.className = "pms-pagination-footer";
+        footer.innerHTML = `
+            <div class="pms-pagination-summary">Showing 0 records</div>
+            <div class="pms-pagination-controls">
+                <button type="button" class="pms-page-button" data-page-action="first" aria-label="First page">
+                    <i class="bi bi-chevron-bar-left" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="pms-page-button" data-page-action="previous" aria-label="Previous page">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                </button>
+                <div class="pms-page-numbers"></div>
+                <span class="pms-mobile-page-status">Page 1 of 1</span>
+                <button type="button" class="pms-page-button" data-page-action="next" aria-label="Next page">
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="pms-page-button" data-page-action="last" aria-label="Last page">
+                    <i class="bi bi-chevron-bar-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        `;
+
+        wrapper.appendChild(toolbar);
+        target.insertAdjacentElement("beforebegin", wrapper);
+        target.insertAdjacentElement("afterend", footer);
+
+        let searchTimer = null;
+        const searchInput = toolbar.querySelector("input[type='search']");
+        const clearButton = toolbar.querySelector(".pms-search-clear");
+        const sizeSelect = toolbar.querySelector(".pms-page-size");
+
+        function notifyChange() {
+            if (typeof options.onChange === "function") {
+                options.onChange({ ...state, filters: { ...state.filters } });
+            }
+        }
+
+        searchInput.addEventListener("input", () => {
+            clearButton.hidden = !searchInput.value;
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(() => {
+                state.search = searchInput.value.trim();
+                state.page = 0;
+                notifyChange();
+            }, options.searchDelay || 350);
+        });
+
+        clearButton.addEventListener("click", () => {
+            searchInput.value = "";
+            clearButton.hidden = true;
+            state.search = "";
+            state.page = 0;
+            searchInput.focus();
+            notifyChange();
+        });
+
+        sizeSelect.addEventListener("change", () => {
+            state.size = Number(sizeSelect.value);
+            state.page = 0;
+            notifyChange();
+        });
+
+        toolbar.querySelectorAll("[data-filter-key]").forEach(select => {
+            select.addEventListener("change", () => {
+                state.filters[select.dataset.filterKey] = select.value;
+                state.page = 0;
+                notifyChange();
+            });
+        });
+
+        footer.addEventListener("click", event => {
+            const button = event.target.closest("[data-page-action], [data-page-number]");
+            if (!button || button.disabled) {
+                return;
+            }
+
+            if (button.dataset.pageNumber !== undefined) {
+                state.page = Number(button.dataset.pageNumber);
+            } else {
+                switch (button.dataset.pageAction) {
+                    case "first":
+                        state.page = 0;
+                        break;
+                    case "previous":
+                        state.page = Math.max(0, state.page - 1);
+                        break;
+                    case "next":
+                        state.page = Math.min(Math.max(0, state.totalPages - 1), state.page + 1);
+                        break;
+                    case "last":
+                        state.page = Math.max(0, state.totalPages - 1);
+                        break;
+                    default:
+                        return;
+                }
+            }
+
+            notifyChange();
+        });
+
+        function renderNumbers() {
+            const numbers = footer.querySelector(".pms-page-numbers");
+            numbers.innerHTML = "";
+
+            if (state.totalPages <= 1) {
+                return;
+            }
+
+            const start = Math.max(0, Math.min(state.page - 2, state.totalPages - 5));
+            const end = Math.min(state.totalPages, start + 5);
+
+            for (let index = start; index < end; index += 1) {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = `pms-page-number${index === state.page ? " active" : ""}`;
+                button.dataset.pageNumber = String(index);
+                button.textContent = String(index + 1);
+                button.setAttribute("aria-label", `Page ${index + 1}`);
+                button.setAttribute("aria-current", index === state.page ? "page" : "false");
+                numbers.appendChild(button);
+            }
+        }
+
+        function update(response) {
+            state.page = Number(response.page || 0);
+            state.size = Number(response.size || state.size);
+            state.totalPages = Number(response.totalPages || 0);
+            state.totalElements = Number(response.totalElements || 0);
+            state.first = Boolean(response.first);
+            state.last = Boolean(response.last);
+
+            const start = state.totalElements === 0 ? 0 : state.page * state.size + 1;
+            const end = state.totalElements === 0
+                ? 0
+                : Math.min(state.totalElements, start + Number(response.numberOfElements || 0) - 1);
+
+            footer.querySelector(".pms-pagination-summary").textContent = state.totalElements === 0
+                ? "No records found"
+                : `Showing ${start}–${end} of ${state.totalElements} records`;
+
+            footer.querySelector(".pms-mobile-page-status").textContent =
+                `Page ${state.totalPages === 0 ? 0 : state.page + 1} of ${state.totalPages}`;
+
+            footer.querySelector('[data-page-action="first"]').disabled = state.first || state.totalPages === 0;
+            footer.querySelector('[data-page-action="previous"]').disabled = state.first || state.totalPages === 0;
+            footer.querySelector('[data-page-action="next"]').disabled = state.last || state.totalPages === 0;
+            footer.querySelector('[data-page-action="last"]').disabled = state.last || state.totalPages === 0;
+            sizeSelect.value = String(state.size);
+            renderNumbers();
+        }
+
+        function buildParams(extra = {}) {
+            const params = new URLSearchParams();
+            params.set("page", String(state.page));
+            params.set("size", String(state.size));
+
+            if (state.search) {
+                params.set("search", state.search);
+            }
+
+            Object.entries(state.filters).forEach(([key, value]) => {
+                if (value !== "" && value !== null && value !== undefined) {
+                    params.set(key, String(value));
+                }
+            });
+
+            Object.entries(extra).forEach(([key, value]) => {
+                if (value !== "" && value !== null && value !== undefined) {
+                    params.set(key, String(value));
+                }
+            });
+
+            return params.toString();
+        }
+
+        function setPage(page) {
+            state.page = Math.max(0, Number(page || 0));
+        }
+
+        function setSize(size) {
+            state.size = Number(size || state.size);
+            state.page = 0;
+            sizeSelect.value = String(state.size);
+        }
+
+        function reset() {
+            state.page = 0;
+            state.search = "";
+            searchInput.value = "";
+            clearButton.hidden = true;
+
+            toolbar.querySelectorAll("[data-filter-key]").forEach(select => {
+                select.value = "";
+                state.filters[select.dataset.filterKey] = "";
+            });
+        }
+
+        return {
+            state,
+            update,
+            buildParams,
+            setPage,
+            setSize,
+            reset,
+            reload: notifyChange,
+            element: wrapper,
+            footer
+        };
+    }
+
     function getUserInitials(user) {
         if (!user || !user.name) {
             return "U";
@@ -841,6 +1140,7 @@ function escapeHtml(value) {
         getTasksApi,
         handleGlobalSearchInput,
         isExecutiveViewer,
-        isClientViewer
+        isClientViewer,
+        createPagination
     };
 })();

@@ -402,6 +402,7 @@ icon: "bi-building-check",
 ids: [
 "totalClients",
 "totalResources",
+"totalAllocations",
 "openEscalations",
 "criticalEscalations",
 "totalCost"
@@ -416,6 +417,7 @@ completedProjects: "bi-check-circle",
 delayedProjects: "bi-exclamation-triangle",
 totalCost: "bi-currency-dollar",
 totalResources: "bi-people",
+totalAllocations: "bi-person-workspace",
 totalTasks: "bi-list-task",
 completedTasks: "bi-check2-square",
 delayedTasks: "bi-clock-history",
@@ -637,7 +639,7 @@ searchPlaceholder: "Search allocated people or project roles"
 }
 }
 function createListToolbar(section, config) {
-if (section.querySelector(":scope > .ui-list-toolbar")) {
+if (section.querySelector(":scope > .ui-list-toolbar") || section.querySelector(".pms-server-toolbar")) {
 return;
 }
 const toolbar = document.createElement("div");
