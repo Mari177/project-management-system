@@ -2,56 +2,301 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>PMS Login</title>
-    <link rel="stylesheet" href="css/style.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Nija Technologies Project Management System login"
+    >
+
+    <title>Nija PMS | Sign In</title>
+
+    <link
+        rel="icon"
+        href="images/nija-logo-01.jpg"
+        type="image/jpeg"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/login.css"
+    >
 </head>
+
 <body class="login-page">
 
-<div class="login-card">
-    <h1 class="login-title">Project Management System</h1>
-    <p class="login-subtitle">
-        Localhost demo login for project, resource, milestone and cost tracking.
-    </p>
+<main class="login-shell">
 
-    <form id="loginForm">
-        <div class="form-group">
-            <label>Username</label>
-            <input type="text" id="username" placeholder="Enter username" required>
+    <section
+        class="login-brand-panel"
+        aria-label="Nija Technologies Project Management System"
+    >
+        <div class="brand-content">
+
+            <div class="brand-logo-wrap">
+                <img
+                    src="images/nija-logo-01.jpg"
+                    alt="Nija Technologies"
+                    class="brand-logo"
+                >
+            </div>
+
+            <p class="brand-eyebrow">
+                Delivery Operations Platform
+            </p>
+
+            <h1>
+                Manage delivery with clarity.
+            </h1>
+
+            <p class="brand-description">
+                One secure workspace for projects, milestones,
+                resources, tasks, timesheets, approvals and
+                support operations.
+            </p>
+
+            <div
+                class="feature-grid"
+                aria-label="Platform capabilities"
+            >
+                <div class="feature-item">
+                    <span
+                        class="feature-icon"
+                        aria-hidden="true"
+                    >
+                        01
+                    </span>
+
+                    <div>
+                        <strong>
+                            Project visibility
+                        </strong>
+
+                        <span>
+                            Track delivery from implementation
+                            to support.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <span
+                        class="feature-icon"
+                        aria-hidden="true"
+                    >
+                        02
+                    </span>
+
+                    <div>
+                        <strong>
+                            Team accountability
+                        </strong>
+
+                        <span>
+                            See ownership, reporting lines and
+                            current workload.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <span
+                        class="feature-icon"
+                        aria-hidden="true"
+                    >
+                        03
+                    </span>
+
+                    <div>
+                        <strong>
+                            Controlled approvals
+                        </strong>
+
+                        <span>
+                            Submit and approve timesheets
+                            through the hierarchy.
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>Password</label>
-            <input type="password" id="password" placeholder="Enter password" required>
+        <p class="brand-footer">
+            Nija Technologies · Project Management System
+        </p>
+    </section>
+
+    <section class="login-form-panel">
+
+        <div class="mobile-logo-wrap">
+            <img
+                src="images/nija-logo-01.jpg"
+                alt="Nija Technologies"
+                class="mobile-logo"
+            >
         </div>
 
-        <button class="btn btn-primary w-100" type="submit">Login</button>
+        <div class="login-form-card">
 
-        <div id="loginError" class="error"></div>
-    </form>
-</div>
+            <div class="form-heading">
+                <p class="form-kicker">
+                    Welcome back
+                </p>
+
+                <h2>
+                    Sign in to your workspace
+                </h2>
+
+                <p>
+                    Use your assigned company credentials
+                    to continue.
+                </p>
+            </div>
+
+            <form
+                id="loginForm"
+                novalidate
+            >
+                <div class="field-group">
+                    <label for="username">
+                        Username
+                    </label>
+
+                    <div class="input-wrap">
+                        <span
+                            class="input-icon"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                focusable="false"
+                            >
+                                <path
+                                    d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"
+                                />
+                            </svg>
+                        </span>
+
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                            maxlength="100"
+                            required
+                            autofocus
+                        >
+                    </div>
+
+                    <div
+                        class="field-error"
+                        id="usernameError"
+                    ></div>
+                </div>
+
+                <div class="field-group">
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <div class="input-wrap">
+                        <span
+                            class="input-icon"
+                            aria-hidden="true"
+                        >
+                            <svg
+                                viewBox="0 0 24 24"
+                                focusable="false"
+                            >
+                                <path
+                                    d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Zm3 10.73V18h-2v-1.27a2 2 0 1 1 2 0Z"
+                                />
+                            </svg>
+                        </span>
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            maxlength="100"
+                            required
+                        >
+
+                        <button
+                            type="button"
+                            id="togglePassword"
+                            class="password-toggle"
+                            aria-label="Show password"
+                            aria-pressed="false"
+                        >
+                            Show
+                        </button>
+                    </div>
+
+                    <div
+                        class="field-error"
+                        id="passwordError"
+                    ></div>
+                </div>
+
+                <div
+                    id="loginError"
+                    class="login-alert"
+                    role="alert"
+                    aria-live="polite"
+                ></div>
+
+                <button
+                    class="login-button"
+                    id="loginButton"
+                    type="submit"
+                >
+                    <span class="button-text">
+                        Sign in
+                    </span>
+
+                    <span
+                        class="button-spinner"
+                        aria-hidden="true"
+                    ></span>
+                </button>
+            </form>
+
+            <div class="security-note">
+                <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <path
+                        d="M12 2 4.5 5v5.2c0 4.63 3.2 8.95 7.5 10.3 4.3-1.35 7.5-5.67 7.5-10.3V5L12 2Zm0 3.18 4.5 1.8v3.22c0 3.28-1.97 6.47-4.5 7.68-2.53-1.21-4.5-4.4-4.5-7.68V6.98L12 5.18Z"
+                    />
+                </svg>
+
+                <span>
+                    Your session is protected and role-based
+                    access is enforced.
+                </span>
+            </div>
+        </div>
+
+        <p class="login-copyright">
+            ©
+            <span id="currentYear"></span>
+            Nija Technologies. All rights reserved.
+        </p>
+    </section>
+</main>
 
 <script src="js/app.js"></script>
-<script>
-    document.getElementById("loginForm").addEventListener("submit", async function (event) {
-        event.preventDefault();
-
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        try {
-            const success = await PMS.login(username, password);
-
-            if (!success) {
-                document.getElementById("loginError").innerText = "Invalid username or password";
-                return;
-            }
-
-            window.location.href = "/dashboard";
-        } catch (error) {
-            document.getElementById("loginError").innerText = "Login failed. Please check backend.";
-        }
-    });
-</script>
+<script src="js/login.js"></script>
 
 </body>
 </html>

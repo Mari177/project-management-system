@@ -81,19 +81,34 @@ function populateSupportProjectDropdown() {
 }
 
 function populateResourceDropdown() {
-    const select = document.getElementById("assignedResourceId");
+    const select = document.getElementById(
+        "assignedResourceId"
+    );
 
     if (!select) {
         return;
     }
 
-    select.innerHTML = `<option value="">Unassigned</option>`;
+    select.innerHTML = `
+        <option value="">
+            Unassigned
+        </option>
+    `;
 
     resourcesCache.forEach(resource => {
-        const designation = resource.designation ? ` - ${resource.designation}` : "";
+        const designation = resource.designation
+            ? ` - ${resource.designation}`
+            : "";
+
+        const reportingManager = resource.reportingManagerName
+            ? ` | Reports to: ${resource.reportingManagerName}`
+            : " | Reports to: Not assigned";
+
         select.innerHTML += `
             <option value="${resource.id}">
-                ${escapeHtml(resource.resourceName || "-")}${escapeHtml(designation)}
+                ${escapeHtml(resource.resourceName || "-")}
+                ${escapeHtml(designation)}
+                ${escapeHtml(reportingManager)}
             </option>
         `;
     });
@@ -231,12 +246,23 @@ function renderTicketCard(ticket) {
     const assignedResource = ticket.assignedResource;
 
     return `
-        <article class="support-ticket-card priority-${escapeHtml(String(ticket.priority || "P3").toLowerCase())}">
+        <article class="
+            support-ticket-card
+            priority-${escapeHtml(
+                String(ticket.priority || "P3").toLowerCase()
+            )}
+        ">
             <div class="support-ticket-card-header">
                 <div>
-                    <div class="support-ticket-code">${escapeHtml(ticket.ticketCode || "-")}</div>
-                    <h3 class="support-ticket-title">${escapeHtml(ticket.title || "-")}</h3>
+                    <div class="support-ticket-code">
+                        ${escapeHtml(ticket.ticketCode || "-")}
+                    </div>
+
+                    <h3 class="support-ticket-title">
+                        ${escapeHtml(ticket.title || "-")}
+                    </h3>
                 </div>
+
                 <div class="support-ticket-badges">
                     ${PMS.badge(ticket.priority || "P3")}
                     ${PMS.badge(ticket.status || "NEW")}
@@ -244,26 +270,113 @@ function renderTicketCard(ticket) {
             </div>
 
             <div class="support-ticket-meta-grid">
-                <div><span>Type</span><strong>${escapeHtml(formatLabel(ticket.ticketType || "-"))}</strong></div>
-                <div><span>Module</span><strong>${escapeHtml(ticket.moduleName || "-")}</strong></div>
-                <div><span>Environment</span><strong>${escapeHtml(formatLabel(ticket.environment || "-"))}</strong></div>
-                <div><span>Assigned To</span><strong>${escapeHtml(assignedResource ? assignedResource.resourceName : "Unassigned")}</strong></div>
-                <div><span>Reported By</span><strong>${escapeHtml(ticket.reportedByName || "-")}</strong></div>
-                <div><span>Reported At</span><strong>${formatDateTime(ticket.reportedAt)}</strong></div>
+                <div>
+                    <span>Type</span>
+                    <strong>
+                        ${escapeHtml(
+                            formatLabel(ticket.ticketType || "-")
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Module</span>
+                    <strong>
+                        ${escapeHtml(ticket.moduleName || "-")}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Environment</span>
+                    <strong>
+                        ${escapeHtml(
+                            formatLabel(ticket.environment || "-")
+                        )}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Assigned To</span>
+
+                    <strong>
+                        <span class="person-name">
+                            ${escapeHtml(
+                                assignedResource
+                                    ? assignedResource.resourceName
+                                    : "Unassigned"
+                            )}
+                        </span>
+
+                        ${assignedResource
+                            ? renderReportingManager(
+                                assignedResource.reportingManagerName,
+                                assignedResource.reportingManagerDesignation
+                            )
+                            : ""
+                        }
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Reported By</span>
+                    <strong>
+                        ${escapeHtml(ticket.reportedByName || "-")}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Reported At</span>
+                    <strong>
+                        ${formatDateTime(ticket.reportedAt)}
+                    </strong>
+                </div>
             </div>
 
             <div class="support-ticket-description">
                 ${escapeHtml(ticket.description || "-")}
             </div>
 
-            ${ticket.rootCause ? `<div class="support-ticket-note"><strong>Root Cause:</strong> ${escapeHtml(ticket.rootCause)}</div>` : ""}
-            ${ticket.resolutionNotes ? `<div class="support-ticket-note"><strong>Resolution:</strong> ${escapeHtml(ticket.resolutionNotes)}</div>` : ""}
+            ${ticket.rootCause
+                ? `
+                    <div class="support-ticket-note">
+                        <strong>Root Cause:</strong>
+                        ${escapeHtml(ticket.rootCause)}
+                    </div>
+                `
+                : ""
+            }
+
+            ${ticket.resolutionNotes
+                ? `
+                    <div class="support-ticket-note">
+                        <strong>Resolution:</strong>
+                        ${escapeHtml(ticket.resolutionNotes)}
+                    </div>
+                `
+                : ""
+            }
 
             <div class="support-ticket-actions">
-                ${canManageTickets ? `
-                    <button class="action-link" onclick="editTicket(${ticket.id})">Edit</button>
-                    <button class="action-link danger" onclick="deleteTicket(${ticket.id})">Delete</button>
-                ` : `<span class="muted-small">Read only</span>`}
+                ${canManageTickets
+                    ? `
+                        <button
+                            class="action-link"
+                            onclick="editTicket(${ticket.id})">
+                            Edit
+                        </button>
+
+                        <button
+                            class="action-link danger"
+                            onclick="deleteTicket(${ticket.id})">
+                            Delete
+                        </button>
+                    `
+                    : `
+                        <span class="muted-small">
+                            Read only
+                        </span>
+                    `
+                }
             </div>
         </article>
     `;
@@ -353,6 +466,34 @@ function resetTicketForm() {
 
 function getProjectType(project) {
     return String(project.projectType || "IMPLEMENTATION").toUpperCase();
+}
+
+function renderReportingManager(
+    managerName,
+    managerDesignation
+) {
+    const safeName = managerName || "Not assigned";
+
+    const designation = managerDesignation
+        ? `
+            <span class="reporting-designation">
+                (${escapeHtml(managerDesignation)})
+            </span>
+        `
+        : "";
+
+    return `
+        <span class="reporting-line reporting-line-compact">
+            <span class="reporting-label">
+                Reports to:
+            </span>
+
+            <span>
+                ${escapeHtml(safeName)}
+                ${designation}
+            </span>
+        </span>
+    `;
 }
 
 function formatLabel(value) {

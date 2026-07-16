@@ -10,11 +10,15 @@ import java.util.Optional;
 
 public interface TimesheetRepository extends JpaRepository<Timesheet, Long> {
 
+    List<Timesheet> findAllByOrderByPeriodStartDesc();
+
     Optional<Timesheet> findByResourceIdAndPeriodStartAndPeriodEnd(Long resourceId,
                                                                    LocalDate periodStart,
                                                                    LocalDate periodEnd);
 
     List<Timesheet> findByResourceAppUserIdOrderByPeriodStartDesc(Long appUserId);
+
+    List<Timesheet> findByResourceAppUserManagerUserIdOrderByPeriodStartDesc(Long managerUserId);
 
     List<Timesheet> findByResourceIdOrderByPeriodStartDesc(Long resourceId);
 
@@ -66,4 +70,42 @@ public interface TimesheetRepository extends JpaRepository<Timesheet, Long> {
             """)
     List<Timesheet> findPendingByProjectTlUserId(@Param("tlUserId") Long tlUserId,
                                                  @Param("status") String status);
+
+    @Query("""
+            select distinct ts
+            from Timesheet ts
+            join TimeLog log on log.timesheet.id = ts.id
+            where log.project.tlUser.id = :tlUserId
+            order by ts.periodStart desc
+            """)
+    List<Timesheet> findDistinctVisibleByProjectTlUserId(@Param("tlUserId") Long tlUserId);
+
+    @Query("""
+            select distinct ts
+            from Timesheet ts
+            join TimeLog log on log.timesheet.id = ts.id
+            where log.project.deliveryManagerUser.id = :deliveryManagerUserId
+            order by ts.periodStart desc
+            """)
+    List<Timesheet> findDistinctVisibleByProjectDeliveryManagerUserId(
+            @Param("deliveryManagerUserId") Long deliveryManagerUserId);
+
+    @Query("""
+            select distinct ts
+            from Timesheet ts
+            join TimeLog log on log.timesheet.id = ts.id
+            where log.project.deliveryHeadUser.id = :deliveryHeadUserId
+            order by ts.periodStart desc
+            """)
+    List<Timesheet> findDistinctVisibleByProjectDeliveryHeadUserId(
+            @Param("deliveryHeadUserId") Long deliveryHeadUserId);
+
+    @Query("""
+            select distinct ts
+            from Timesheet ts
+            join TimeLog log on log.timesheet.id = ts.id
+            where log.project.country = :country
+            order by ts.periodStart desc
+            """)
+    List<Timesheet> findDistinctVisibleByProjectCountry(@Param("country") String country);
 }

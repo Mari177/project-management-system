@@ -1,62 +1,46 @@
-/* =========================================================
-   Project Management System - Premium Professional Stylesheet
-   Theme: Rose Professional + Modern Delivery
-   ========================================================= */
-
 :root {
     --primary: #0f766e;
     --primary-dark: #0f5f5a;
     --primary-light: #e7f5f3;
     --accent: #14b8a6;
-
-    /* === PREMIUM ROSE TOPBAR === */
     --topbar-bg: #B64F79;
     --topbar-gradient: linear-gradient(90deg, #B64F79 0%, #9F3F6A 100%);
-
-    /* Sidebar - Dark professional with Rose accents */
     --sidebar: #1e293b;
     --sidebar-dark: #0f172a;
     --sidebar-hover: rgba(182, 79, 121, 0.12);
     --sidebar-active: #334155;
     --sidebar-text: #cbd5e1;
-    --sidebar-muted: #94a3b8;
     --sidebar-accent: #B64F79;
-
     --page-bg: #f4f3ef;
     --surface-bg: #f8f7f3;
     --card-bg: #fffefa;
     --white: #ffffff;
     --border: #dedbd2;
-    --border-light: #e2e8f0;
-
     --text-main: #20242b;
     --text-body: #3e4652;
     --text-muted: #6c7380;
-
     --success: #15803d;
     --warning: #b45309;
     --danger: #c2410c;
-    --info: #0f766e;
-
     --shadow-soft: 0 1px 2px rgba(32, 36, 43, 0.04);
-    --shadow-card: 0 4px 20px rgba(15, 23, 42, 0.08);
     --shadow-hover: 0 10px 30px rgba(15, 23, 42, 0.12);
+    --shadow-sidebar: 8px 0 26px rgba(15, 23, 42, 0.10);
     --radius-sm: 10px;
     --radius-md: 14px;
     --radius-lg: 16px;
-
     --sidebar-width: 112px;
+    --topbar-height: 82px
 }
 
 * {
-    box-sizing: border-box;
+    box-sizing: border-box
 }
 
 html {
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
     scrollbar-width: thin;
-    scrollbar-color: #c7cdd4 var(--page-bg);
+    scrollbar-color: #c7cdd4 var(--page-bg)
 }
 
 body {
@@ -65,90 +49,37 @@ body {
     color: var(--text-body);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Liberation Sans, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     font-size: 13px;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.01em
 }
 
 body::-webkit-scrollbar {
     width: 9px;
-    height: 9px;
+    height: 9px
 }
 
 body::-webkit-scrollbar-track {
-    background: var(--page-bg);
+    background: var(--page-bg)
 }
 
 body::-webkit-scrollbar-thumb {
     background: #c7cdd4;
     border-radius: 999px;
-    border: 2px solid var(--page-bg);
+    border: 2px solid var(--page-bg)
 }
 
 body::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #9ca3af
 }
 
 a {
     color: inherit;
-    text-decoration: none;
+    text-decoration: none
 }
-
-/* =========================================================
-   Login Page
-   ========================================================= */
-
-.login-page {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background:
-        radial-gradient(circle at 15% 15%, rgba(15, 118, 110, 0.10), transparent 28%),
-        radial-gradient(circle at 85% 85%, rgba(43, 48, 55, 0.10), transparent 28%),
-        var(--page-bg);
-}
-
-.login-card {
-    width: 420px;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 34px;
-    box-shadow: 0 24px 60px rgba(32, 36, 43, 0.14);
-}
-
-.login-title {
-    margin: 0;
-    color: var(--text-main);
-    font-size: 25px;
-    font-weight: 800;
-    letter-spacing: -0.035em;
-}
-
-.login-subtitle {
-    margin-top: 8px;
-    margin-bottom: 26px;
-    color: var(--text-muted);
-    font-size: 14px;
-}
-
-.error {
-    margin-top: 12px;
-    color: var(--danger);
-    font-size: 13px;
-}
-
-/* =========================================================
-   App Layout
-   ========================================================= */
 
 .app-layout {
     display: flex;
     min-height: 100vh;
-    background:
-        linear-gradient(180deg,
-            var(--surface-bg) 0,
-            var(--page-bg) 240px,
-            var(--page-bg) 100%);
+    background: linear-gradient(180deg, var(--surface-bg) 0, var(--page-bg) 240px, var(--page-bg) 100%)
 }
 
 .sidebar {
@@ -165,44 +96,41 @@ a {
     border-right: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: var(--shadow-sidebar);
     scrollbar-width: none;
-    -ms-overflow-style: none;
+    -ms-overflow-style: none
 }
 
 .sidebar::-webkit-scrollbar {
-    display: none;
+    display: none
 }
 
 .main {
     width: calc(100% - var(--sidebar-width));
     min-height: 100vh;
-    margin-left: var(--sidebar-width);
+    margin-left: var(--sidebar-width)
 }
 
-/* =========================================================
-   Compact Sidebar - Rose Accent Theme (Aligned with Topbar)
-   ========================================================= */
-
 .sidebar-brand {
-    height: 104px;
-    padding: 12px 10px 10px;
+    height: var(--topbar-height);
+    padding: 0 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     background-color: white;
+    min-height: var(--topbar-height)
 }
 
 .sidebar-logo-box {
-    width: 100px;
-    height: 90px;
-    min-height: 70px;
+    width: 76px;
+    height: 60px;
+    min-height: 60px;
     margin: 0;
     padding: 5px;
-    border-radius: var(--radius-lg);
+    border-radius: 14px;
     background: var(--white);
     overflow: hidden;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: center
 }
 
 .sidebar-logo {
@@ -212,17 +140,17 @@ a {
     object-fit: contain;
     object-position: center;
     border-radius: var(--radius-sm);
-    background: var(--white);
+    background: var(--white)
 }
 
 .sidebar-product,
 .sidebar-product-title,
 .sidebar-product-subtitle {
-    display: none;
+    display: none
 }
 
 .sidebar-menu {
-    padding: 12px 10px;
+    padding: 12px 10px
 }
 
 .sidebar-link {
@@ -241,18 +169,18 @@ a {
     line-height: 1.12;
     text-align: center;
     position: relative;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease
 }
 
 .sidebar-link:hover {
     background: var(--sidebar-hover);
-    color: #ffffff;
+    color: #ffffff
 }
 
 .sidebar-link.active {
     background: var(--sidebar-active);
     color: #ffffff;
-    font-weight: 700;
+    font-weight: 700
 }
 
 .sidebar-link.active::before {
@@ -264,7 +192,7 @@ a {
     width: 4px;
     background: var(--sidebar-accent);
     border-radius: 0 4px 4px 0;
-    box-shadow: 0 0 8px rgba(182, 79, 121, 0.5);
+    box-shadow: 0 0 8px rgba(182, 79, 121, 0.5)
 }
 
 .sidebar-icon {
@@ -276,19 +204,15 @@ a {
     justify-content: center;
     font-size: 17px;
     line-height: 1;
-    color: inherit;
+    color: inherit
 }
 
 .sidebar-label {
     max-width: 78px;
     font-weight: 600;
     white-space: normal;
-    overflow-wrap: break-word;
+    overflow-wrap: break-word
 }
-
-/* =========================================================
-   Topbar - Rose Premium
-   ========================================================= */
 
 .topbar {
     position: sticky;
@@ -296,11 +220,11 @@ a {
     z-index: 50;
     background: var(--topbar-bg);
     border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15)
 }
 
 .topbar-main {
-    min-height: 72px;
+    min-height: var(--topbar-height);
     background: var(--topbar-gradient);
     color: var(--white);
     display: grid;
@@ -308,10 +232,9 @@ a {
     align-items: center;
     gap: 24px;
     padding: 0 28px;
-    position: relative;
+    position: relative
 }
 
-/* Subtle accent line */
 .topbar-main::after {
     content: '';
     position: absolute;
@@ -320,7 +243,7 @@ a {
     right: 0;
     height: 2px;
     background: linear-gradient(to right, transparent, var(--accent), transparent);
-    opacity: 0.35;
+    opacity: 0.35
 }
 
 .page-title {
@@ -329,7 +252,7 @@ a {
     font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.025em
 }
 
 .page-subtitle {
@@ -338,10 +261,9 @@ a {
     font-size: 12.5px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis
 }
 
-/* Enhanced Search */
 .topbar-search {
     max-width: 680px;
     width: 100%;
@@ -354,14 +276,14 @@ a {
     align-items: center;
     padding: 0 12px 0 16px;
     transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05)
 }
 
 .topbar-search:focus-within {
     background: var(--white);
     border-color: var(--accent);
     box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.15);
-    transform: translateY(-1px);
+    transform: translateY(-1px)
 }
 
 .topbar-search input {
@@ -371,15 +293,14 @@ a {
     outline: none;
     background: transparent;
     color: #0f172a;
-    font-size: 13.5px;
+    font-size: 13.5px
 }
 
-/* Enhanced Right Side */
 .topbar-right {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 14px;
+    gap: 14px
 }
 
 .notification-btn {
@@ -393,35 +314,37 @@ a {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease
 }
 
 .notification-btn:hover {
     background: rgba(20, 184, 166, 0.2);
     color: var(--accent);
     border-color: var(--accent);
-    transform: translateY(-1px);
+    transform: translateY(-1px)
 }
 
 .user-chip {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 4px 6px 4px 4px;
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.06);
+    gap: 11px;
+    padding: 7px 11px 7px 7px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.10);
     transition: all 0.2s ease;
-    cursor: pointer;
+    cursor: default;
+    min-width: 270px;
+    max-width: 360px;
+    border: 1px solid rgba(255, 255, 255, 0.16)
 }
 
 .user-chip:hover {
-    background: rgba(255, 255, 255, 0.12);
-    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.14)
 }
 
 .user-avatar {
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     background: var(--accent);
     color: white;
     border-radius: 50%;
@@ -431,6 +354,7 @@ a {
     font-weight: 700;
     font-size: 13px;
     box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
+    flex: 0 0 38px
 }
 
 .logout-link {
@@ -444,19 +368,15 @@ a {
     border-radius: 10px;
     font-size: 12.5px;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease
 }
 
 .logout-link:hover {
     background: #c2410c;
     border-color: #c2410c;
     color: white;
-    transform: translateY(-1px);
+    transform: translateY(-1px)
 }
-
-/* =========================================================
-   Sections, Cards and Metrics
-   ========================================================= */
 
 .section {
     margin: 24px;
@@ -464,7 +384,7 @@ a {
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
+    box-shadow: var(--shadow-soft)
 }
 
 .section-header {
@@ -472,7 +392,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 12px
 }
 
 .section-title {
@@ -480,19 +400,17 @@ a {
     color: var(--text-main);
     font-size: 17px;
     font-weight: 760;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.025em
 }
 
-.content-grid,
-.dashboard-grid,
-.metric-grid {
+.content-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(160px, 1fr));
     gap: 16px;
-    margin: 24px;
+    margin: 24px
 }
 
-.card{
+.card {
     position: relative;
     place-items: center;
     min-height: 112px;
@@ -502,22 +420,24 @@ a {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease
 }
 
-.card:hover,  .cost_card:hover {
+.card:hover,
+.cost_card:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-hover);
+    box-shadow: var(--shadow-hover)
 }
 
-.card::before , .cost_card::before {
+.card::before,
+.cost_card::before {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     top: 0;
     height: 3px;
-    background: var(--primary);
+    background: var(--primary)
 }
 
 .cost_card {
@@ -530,7 +450,7 @@ a {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease
 }
 
 .metric-title {
@@ -538,7 +458,7 @@ a {
     font-size: 12px;
     font-weight: 750;
     text-transform: uppercase;
-    letter-spacing: 0.045em;
+    letter-spacing: 0.045em
 }
 
 .metric-value {
@@ -546,22 +466,18 @@ a {
     color: var(--text-main);
     font-size: 28px;
     font-weight: 760;
-    letter-spacing: -0.035em;
+    letter-spacing: -0.035em
 }
-
-/* =========================================================
-   Forms
-   ========================================================= */
 
 .form-grid,
 .form-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(180px, 1fr));
-    gap: 16px;
+    gap: 16px
 }
 
 .form-group {
-    margin-bottom: 0;
+    margin-bottom: 0
 }
 
 .form-group label,
@@ -570,7 +486,7 @@ label {
     margin-bottom: 6px;
     color: #475569;
     font-size: 12px;
-    font-weight: 650;
+    font-weight: 650
 }
 
 input,
@@ -584,35 +500,31 @@ textarea {
     background: var(--white);
     color: var(--text-main);
     font-family: inherit;
-    font-size: 13px;
+    font-size: 13px
 }
 
 textarea {
-    resize: vertical;
+    resize: vertical
 }
 
 input:focus,
 select:focus,
 textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.10);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.10)
 }
 
 input[type="checkbox"] {
     width: auto;
-    margin-right: 6px;
+    margin-right: 6px
 }
 
 .form-actions {
     margin-top: 18px;
     display: flex;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: wrap
 }
-
-/* =========================================================
-   Buttons and Actions
-   ========================================================= */
 
 .btn {
     border: none;
@@ -621,44 +533,44 @@ input[type="checkbox"] {
     font-size: 12px;
     font-weight: 750;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease
 }
 
 .btn-primary {
     background: var(--primary);
     color: var(--white);
-    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16)
 }
 
 .btn-primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-1px);
+    transform: translateY(-1px)
 }
 
 .btn-secondary {
     background: #f7f6f2;
     border: 1px solid var(--border);
-    color: #334155;
+    color: #334155
 }
 
 .btn-secondary:hover {
     background: var(--primary-light);
     border-color: #a7d8d2;
-    color: var(--primary-dark);
+    color: var(--primary-dark)
 }
 
 .btn-danger {
     background: var(--danger);
-    color: var(--white);
+    color: var(--white)
 }
 
 .btn-danger:hover {
-    background: #9a3412;
+    background: #9a3412
 }
 
 .btn-small {
     padding: 7px 10px;
-    font-size: 11px;
+    font-size: 11px
 }
 
 .action-link {
@@ -669,21 +581,17 @@ input[type="checkbox"] {
     color: var(--primary);
     cursor: pointer;
     font-weight: 700;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease
 }
 
 .action-link:hover {
     color: #0f5f5a;
-    text-decoration: underline;
+    text-decoration: underline
 }
 
 .action-link.danger {
-    color: var(--danger);
+    color: var(--danger)
 }
-
-/* =========================================================
-   Tables
-   ========================================================= */
 
 .table-wrapper {
     overflow-x: auto;
@@ -692,35 +600,35 @@ input[type="checkbox"] {
     border-radius: var(--radius-md);
     box-shadow: 0 1px 2px rgba(32, 36, 43, 0.03);
     scrollbar-width: thin;
-    scrollbar-color: #c7cdd4 var(--card-bg);
+    scrollbar-color: #c7cdd4 var(--card-bg)
 }
 
 .table-wrapper::-webkit-scrollbar {
-    height: 8px;
+    height: 8px
 }
 
 .table-wrapper::-webkit-scrollbar-track {
     background: var(--card-bg);
-    border-radius: 999px;
+    border-radius: 999px
 }
 
 .table-wrapper::-webkit-scrollbar-thumb {
     background: #c7cdd4;
-    border-radius: 999px;
+    border-radius: 999px
 }
 
 .table-wrapper::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #9ca3af
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 13px
 }
 
 thead {
-    background: #f6f5f0;
+    background: #f6f5f0
 }
 
 th {
@@ -732,29 +640,25 @@ th {
     text-align: left;
     text-transform: uppercase;
     letter-spacing: 0.055em;
-    white-space: nowrap;
+    white-space: nowrap
 }
 
 td {
     padding: 13px 14px;
     border-bottom: 1px solid #ece9df;
     color: #334155;
-    vertical-align: top;
+    vertical-align: top
 }
 
 tr:hover td {
-    background: #fff9f5;
+    background: #fff9f5
 }
 
 .empty-state {
     padding: 28px;
     color: var(--text-muted);
-    text-align: center;
+    text-align: center
 }
-
-/* =========================================================
-   Badges
-   ========================================================= */
 
 .badge {
     display: inline-block;
@@ -762,64 +666,55 @@ tr:hover td {
     border-radius: 999px;
     font-size: 11px;
     font-weight: 750;
-    line-height: 1;
+    line-height: 1
 }
 
 .badge-success {
     background: #dcfce7;
-    color: var(--success);
+    color: var(--success)
 }
 
 .badge-warning {
     background: #fff7ed;
-    color: var(--warning);
+    color: var(--warning)
 }
 
 .badge-danger {
     background: #ffedd5;
-    color: var(--danger);
+    color: var(--danger)
 }
 
 .badge-info {
     background: var(--primary-light);
-    color: var(--primary-dark);
+    color: var(--primary-dark)
 }
-
-/* =========================================================
-   Utilities
-   ========================================================= */
 
 .hidden {
-    display: none !important;
-}
-
-.w-100 {
-    width: 100%;
+    display: none !important
 }
 
 .muted-text {
     background: #f9fafb;
     color: var(--text-muted);
-    font-size: 13px;
+    font-size: 13px
 }
 
 .muted-small {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 11px
 }
 
-.long-text,
 .report-description {
     max-width: 300px;
     white-space: normal;
     word-break: break-word;
-    line-height: 1.45;
+    line-height: 1.45
 }
 
 .escalation-line {
     margin-top: 4px;
-    font-size: 12px;
+    font-size: 12px
 }
 
 .task-description {
@@ -827,25 +722,21 @@ tr:hover td {
     max-width: 360px;
     color: var(--text-muted);
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 1.4
 }
 
-/* =========================================================
-   Milestone Grouped Project Report
-   ========================================================= */
-
 .project-report-row {
-    cursor: default;
+    cursor: default
 }
 
 .project-report-row:hover td {
-    background: #f8fafc;
+    background: #f8fafc
 }
 
 .report-toggle-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 6px
 }
 
 .project-report-container {
@@ -854,7 +745,7 @@ tr:hover td {
     background: #f8fafc;
     border: 1px solid #dbe3ea;
     border-radius: 16px;
-    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02)
 }
 
 .project-report-loading {
@@ -863,7 +754,7 @@ tr:hover td {
     padding: 14px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 8px
 }
 
 .project-report-header {
@@ -871,34 +762,34 @@ tr:hover td {
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 16px
 }
 
 .project-report-title {
     font-size: 18px;
     font-weight: 800;
     color: var(--text-main);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.02em
 }
 
 .project-report-subtitle {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 12px
 }
 
 .project-report-metrics {
     display: grid;
     grid-template-columns: repeat(7, minmax(110px, 1fr));
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 14px
 }
 
 .report-metric {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 11px 12px;
+    padding: 11px 12px
 }
 
 .report-metric span {
@@ -908,17 +799,17 @@ tr:hover td {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin-bottom: 6px;
+    margin-bottom: 6px
 }
 
 .report-metric strong {
     display: block;
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 14px
 }
 
 .project-overall-progress {
-    margin-bottom: 14px;
+    margin-bottom: 14px
 }
 
 .milestone-report-note {
@@ -932,18 +823,18 @@ tr:hover td {
     border-radius: 12px;
     color: #334155;
     font-size: 12.5px;
-    line-height: 1.45;
+    line-height: 1.45
 }
 
 .milestone-report-note i {
     color: #2563eb;
-    margin-top: 1px;
+    margin-top: 1px
 }
 
 .milestone-report-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 12px
 }
 
 .milestone-accordion-item {
@@ -951,7 +842,7 @@ tr:hover td {
     border: 1px solid #e2e8f0;
     border-radius: 15px;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04)
 }
 
 .milestone-accordion-header {
@@ -964,22 +855,22 @@ tr:hover td {
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    text-align: left;
+    text-align: left
 }
 
 .milestone-accordion-header:hover {
-    background: #f8fafc;
+    background: #f8fafc
 }
 
 .milestone-accordion-header.active {
-    background: #f8fafc;
+    background: #f8fafc
 }
 
 .milestone-left {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 0;
+    min-width: 0
 }
 
 .milestone-code {
@@ -993,31 +884,31 @@ tr:hover td {
     justify-content: center;
     font-weight: 800;
     font-size: 13px;
-    flex: 0 0 auto;
+    flex: 0 0 auto
 }
 
 .milestone-title-wrap {
-    min-width: 0;
+    min-width: 0
 }
 
 .milestone-name {
     color: var(--text-main);
     font-size: 14px;
     font-weight: 750;
-    line-height: 1.25;
+    line-height: 1.25
 }
 
 .milestone-meta {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 11.5px;
+    font-size: 11.5px
 }
 
 .milestone-right {
     display: flex;
     align-items: center;
     gap: 12px;
-    white-space: nowrap;
+    white-space: nowrap
 }
 
 .milestone-progress-value {
@@ -1025,20 +916,20 @@ tr:hover td {
     font-size: 13px;
     font-weight: 800;
     min-width: 42px;
-    text-align: right;
+    text-align: right
 }
 
 .milestone-chevron {
     color: var(--text-muted);
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease
 }
 
 .milestone-accordion-header.active .milestone-chevron {
-    transform: rotate(180deg);
+    transform: rotate(180deg)
 }
 
 .milestone-progress-line {
-    padding: 0 16px 12px;
+    padding: 0 16px 12px
 }
 
 .report-progress-track {
@@ -1046,47 +937,40 @@ tr:hover td {
     height: 8px;
     background: #e2e8f0;
     border-radius: 999px;
-    overflow: hidden;
+    overflow: hidden
 }
 
 .report-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, #0f766e, #14b8a6);
-    border-radius: 999px;
+    border-radius: 999px
 }
 
 .milestone-accordion-body {
     display: none;
-    padding: 0 16px 16px;
+    padding: 0 16px 16px
 }
 
 .milestone-accordion-body.open {
-    display: block;
+    display: block
 }
 
 .inner-report-table {
     border-radius: 12px;
-    background: #ffffff;
+    background: #ffffff
 }
 
 .inner-report-table table {
-    min-width: 1250px;
+    min-width: 1250px
 }
 
 .inner-report-table th {
-    font-size: 10.5px;
+    font-size: 10.5px
 }
 
 .inner-report-table td {
     font-size: 12.5px;
-    vertical-align: top;
-}
-
-.report-description {
-    max-width: 300px;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.45;
+    vertical-align: top
 }
 
 .project-report-empty {
@@ -1097,152 +981,131 @@ tr:hover td {
     border: 1px dashed #cbd5e1;
     border-radius: 14px;
     padding: 18px;
-    color: var(--text-body);
+    color: var(--text-body)
 }
 
 .project-report-empty i {
     color: var(--primary);
     font-size: 20px;
-    margin-top: 2px;
+    margin-top: 2px
 }
 
 .project-report-empty strong {
     display: block;
     color: var(--text-main);
     font-size: 14px;
-    margin-bottom: 4px;
+    margin-bottom: 4px
 }
 
 .project-report-empty p {
     margin: 0;
     color: var(--text-muted);
     font-size: 12.5px;
-    line-height: 1.45;
+    line-height: 1.45
 }
 
 .mini-progress-wrap {
-    min-width: 90px;
+    min-width: 90px
 }
 
 .mini-progress-text {
     font-size: 11px;
     color: var(--text-main);
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 4px
 }
 
 .mini-progress-track {
     height: 6px;
     background: #e2e8f0;
     border-radius: 999px;
-    overflow: hidden;
+    overflow: hidden
 }
 
 .mini-progress-fill {
     height: 100%;
     background: #0f766e;
-    border-radius: 999px;
+    border-radius: 999px
 }
 
-.muted-small {
-    margin-top: 4px;
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
-.btn-small {
-    padding: 7px 10px;
-    font-size: 11px;
-}
-
-/* =========================================================
-   Responsive
-   ========================================================= */
-
-@media (max-width: 1100px) {
+@media (max-width:1100px) {
     .topbar-main {
-        grid-template-columns: 220px 1fr auto;
+        grid-template-columns: 220px 1fr auto
     }
 
-    .content-grid,
-    .dashboard-grid,
-    .metric-grid {
-        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    .content-grid {
+        grid-template-columns: repeat(2, minmax(160px, 1fr))
     }
 
     .form-grid,
     .form-row {
-        grid-template-columns: repeat(2, minmax(180px, 1fr));
+        grid-template-columns: repeat(2, minmax(180px, 1fr))
     }
 
     .project-report-metrics {
-        grid-template-columns: repeat(3, minmax(110px, 1fr));
+        grid-template-columns: repeat(3, minmax(110px, 1fr))
     }
 }
 
-@media (max-width: 780px) {
+@media (max-width:780px) {
     :root {
-        --sidebar-width: 98px;
+        --sidebar-width: 98px
     }
 
     .sidebar-link {
-        font-size: 10px;
+        font-size: 10px
     }
 
     .topbar-main {
         grid-template-columns: 1fr;
         padding: 14px 16px;
+        align-items: stretch;
+        gap: 12px
     }
 
     .topbar-search {
-        max-width: none;
+        max-width: none
     }
 
     .content-grid,
-    .dashboard-grid,
-    .metric-grid,
     .form-grid,
     .form-row {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .section,
-    .content-grid,
-    .dashboard-grid,
-    .metric-grid {
-        margin: 14px;
+    .content-grid {
+        margin: 14px
     }
 
     .user-chip {
         flex-wrap: wrap;
+        min-width: 230px;
+        max-width: none;
+        flex: 1 1 270px
     }
 }
 
-@media (max-width: 700px) {
+@media (max-width:700px) {
     .project-report-metrics {
-        grid-template-columns: 1fr;
-    }
-
-    .milestone-report-header {
-        align-items: flex-start;
-        flex-direction: column;
+        grid-template-columns: 1fr
     }
 
     .milestone-right {
         width: 100%;
-        justify-content: space-between;
+        justify-content: space-between
     }
 }
 
-@media (max-width: 560px) {
+@media (max-width:560px) {
     .app-layout {
-        display: block;
+        display: block
     }
 
     .sidebar {
         position: relative;
         width: 100%;
-        min-height: auto;
+        min-height: auto
     }
 
     .sidebar-menu {
@@ -1250,39 +1113,30 @@ tr:hover td {
         gap: 8px;
         overflow-x: auto;
         scrollbar-width: none;
-        -ms-overflow-style: none;
+        -ms-overflow-style: none
     }
 
     .sidebar-menu::-webkit-scrollbar {
-        display: none;
+        display: none
     }
 
     .sidebar-link {
-        min-width: 82px;
+        min-width: 82px
     }
 
     .main {
         width: 100%;
-        margin-left: 0;
-    }
-
-    .login-card {
-        width: 92%;
-        padding: 26px;
+        margin-left: 0
     }
 
     .section-header {
         align-items: flex-start;
-        flex-direction: column;
+        flex-direction: column
     }
 }
 
-/* =========================================================
-   Project Report Modal
-   ========================================================= */
-
 body.modal-open {
-    overflow: hidden;
+    overflow: hidden
 }
 
 .report-modal-overlay {
@@ -1294,7 +1148,7 @@ body.modal-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 22px;
+    padding: 22px
 }
 
 .report-modal-card {
@@ -1306,7 +1160,7 @@ body.modal-open {
     box-shadow: 0 28px 80px rgba(32, 36, 43, 0.28);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden
 }
 
 .report-modal-top {
@@ -1317,7 +1171,7 @@ body.modal-open {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 16px
 }
 
 .report-modal-label {
@@ -1326,7 +1180,7 @@ body.modal-open {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    margin-bottom: 4px;
+    margin-bottom: 4px
 }
 
 .report-modal-title {
@@ -1334,7 +1188,7 @@ body.modal-open {
     color: #2f2530;
     font-size: 18px;
     font-weight: 800;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.025em
 }
 
 .report-modal-close {
@@ -1348,13 +1202,13 @@ body.modal-open {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: 0.18s ease;
+    transition: 0.18s ease
 }
 
 .report-modal-close:hover {
     background: #f1ded8;
     border-color: #c7a9a0;
-    color: #2f2530;
+    color: #2f2530
 }
 
 .report-modal-body {
@@ -1362,30 +1216,30 @@ body.modal-open {
     overflow: auto;
     background: #f8f7f3;
     scrollbar-width: thin;
-    scrollbar-color: #c7cdd4 #f8f7f3;
+    scrollbar-color: #c7cdd4 #f8f7f3
 }
 
 .report-modal-body::-webkit-scrollbar {
     width: 9px;
-    height: 9px;
+    height: 9px
 }
 
 .report-modal-body::-webkit-scrollbar-track {
-    background: #f8f7f3;
+    background: #f8f7f3
 }
 
 .report-modal-body::-webkit-scrollbar-thumb {
     background: #c7cdd4;
     border-radius: 999px;
-    border: 2px solid #f8f7f3;
+    border: 2px solid #f8f7f3
 }
 
 .report-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #9ca3af
 }
 
 .report-dialog-container {
-    margin: 0;
+    margin: 0
 }
 
 .restricted-text {
@@ -1395,114 +1249,69 @@ body.modal-open {
     border-radius: 999px;
     padding: 5px 9px;
     font-size: 11px;
-    font-weight: 750;
+    font-weight: 750
 }
 
-@media (max-width: 780px) {
+@media (max-width:780px) {
     .report-modal-overlay {
         padding: 10px;
-        align-items: stretch;
+        align-items: stretch
     }
 
     .report-modal-card {
         width: 100%;
         max-height: 96vh;
-        border-radius: 16px;
+        border-radius: 16px
     }
 
     .report-modal-top {
-        padding: 14px;
+        padding: 14px
     }
 
     .report-modal-title {
-        font-size: 16px;
+        font-size: 16px
     }
 
     .report-modal-body {
-        padding: 12px;
+        padding: 12px
     }
 }
 
-/* =========================================================
-   Logo Area Height Alignment with Topbar
-   ========================================================= */
-
-:root {
-    --topbar-height: 72px;
-}
-
-.topbar-main {
-    min-height: var(--topbar-height);
-}
-
-.sidebar-brand {
-    height: var(--topbar-height) !important;
-    min-height: var(--topbar-height) !important;
-    padding: 0 10px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sidebar-logo-box {
-    width: 76px !important;
-    height: 60px !important;
-    min-height: 60px !important;
-    padding: 5px !important;
-    margin: 0 !important;
-    border-radius: 14px;
-}
-
-.sidebar-logo {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-}
-
-/* =========================================================
-   Dashboard Report Table Fixes
-   ========================================================= */
 .strong-code {
     font-weight: 800;
     color: #6b7280;
     letter-spacing: 0.03em;
-    margin-bottom: 3px;
+    margin-bottom: 3px
 }
 
 .project-task-report-table table {
-    min-width: 1500px;
+    min-width: 1500px
 }
 
 .project-task-report-table th,
 .project-task-report-table td {
-    white-space: nowrap;
+    white-space: nowrap
 }
 
 .project-task-report-table .report-description {
     min-width: 260px;
     max-width: 340px;
-    white-space: normal;
+    white-space: normal
 }
-
-/* =========================================================
-   Timesheet Workspace - Clean Professional UI
-   Single source of truth for timesheets page.
-   ========================================================= */
 
 .section-subtitle {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 12px
 }
 
 .timesheet-workspace-section {
-    padding-bottom: 32px;
+    padding-bottom: 32px
 }
 
 .timesheet-main-header {
     align-items: flex-start;
-    gap: 18px;
+    gap: 18px
 }
 
 .timesheet-actions-row,
@@ -1510,22 +1319,21 @@ body.modal-open {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 8px
 }
 
 .timesheet-view-switcher .btn.active {
     background: #111827;
     color: #ffffff;
-    border-color: #111827;
+    border-color: #111827
 }
 
-/* Top area: create form + selected summary */
 .timesheet-top-grid {
     display: grid;
     grid-template-columns: minmax(340px, 430px) minmax(0, 1fr);
     gap: 16px;
     align-items: stretch;
-    margin-bottom: 16px;
+    margin-bottom: 16px
 }
 
 .timesheet-card {
@@ -1533,7 +1341,7 @@ body.modal-open {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 18px;
-    box-shadow: 0 1px 2px rgba(32, 36, 43, 0.04);
+    box-shadow: 0 1px 2px rgba(32, 36, 43, 0.04)
 }
 
 .timesheet-card-title {
@@ -1541,65 +1349,63 @@ body.modal-open {
     color: var(--text-main);
     font-size: 15px;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.02em
 }
 
 .create-timesheet-card {
-    min-height: 100%;
+    min-height: 100%
 }
 
 .selected-timesheet-card {
-    min-height: 178px;
+    min-height: 178px
 }
 
 .selected-timesheet-card .empty-state {
     min-height: 132px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: center
 }
 
 .timesheet-form-grid {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    grid-template-columns: repeat(3, minmax(160px, 1fr))
 }
 
 .create-timesheet-card .timesheet-form-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr
 }
 
 .create-timesheet-card .admin-only-field:not(.hidden) {
-    grid-column: span 2;
+    grid-column: span 2
 }
 
 .time-log-form-card {
-    margin-bottom: 16px;
+    margin-bottom: 16px
 }
 
 .time-log-form-card .timesheet-form-grid {
-    grid-template-columns: minmax(320px, 2fr) repeat(3, minmax(130px, 1fr));
+    grid-template-columns: minmax(320px, 2fr) repeat(3, minmax(130px, 1fr))
 }
 
 .time-log-task-field {
-    min-width: 0;
+    min-width: 0
 }
 
 .compact-header {
     margin-bottom: 12px;
-    align-items: center;
+    align-items: center
 }
 
-/* Timesheet list */
 .timesheet-list-card {
-    padding-bottom: 16px;
+    padding-bottom: 16px
 }
 
 .timesheet-card-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 12px
 }
 
-/* Full-width action-first cards */
 .timesheet-list-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -1608,60 +1414,60 @@ body.modal-open {
     border: 1px solid #e5e7eb;
     border-radius: 16px;
     background: #ffffff;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease
 }
 
 .timesheet-list-item:hover {
     border-color: #cbd5e1;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07)
 }
 
 .timesheet-list-item.selected {
     border-color: #2563eb;
-    background: #eff6ff;
+    background: #eff6ff
 }
 
 .timesheet-list-item-main {
-    min-width: 0;
+    min-width: 0
 }
 
 .timesheet-list-topline {
     display: grid;
     grid-template-columns: minmax(170px, auto) minmax(160px, 1fr) auto;
     gap: 14px;
-    align-items: start;
+    align-items: start
 }
 
 .timesheet-period {
     font-size: 15px;
     font-weight: 800;
     color: #111827;
-    line-height: 1.35;
+    line-height: 1.35
 }
 
 .timesheet-person {
     font-size: 13px;
     color: #475569;
     line-height: 1.35;
-    padding-top: 1px;
+    padding-top: 1px
 }
 
 .timesheet-status-wrap {
-    justify-self: end;
+    justify-self: end
 }
 
 .timesheet-card-metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(110px, 1fr));
     gap: 10px;
-    margin-top: 14px;
+    margin-top: 14px
 }
 
 .timesheet-card-metrics div {
     padding: 10px 12px;
     border-radius: 13px;
     background: #f8fafc;
-    border: 1px solid #eef2f7;
+    border: 1px solid #eef2f7
 }
 
 .timesheet-card-metrics span {
@@ -1670,17 +1476,16 @@ body.modal-open {
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #64748b;
+    color: #64748b
 }
 
 .timesheet-card-metrics strong {
     display: block;
     margin-top: 4px;
     font-size: 14px;
-    color: #111827;
+    color: #111827
 }
 
-/* Buttons stay visible and horizontal */
 .timesheet-list-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1688,26 +1493,26 @@ body.modal-open {
     align-content: flex-start;
     justify-content: flex-end;
     min-width: 330px;
-    max-width: 440px;
+    max-width: 440px
 }
 
 .timesheet-list-actions .btn {
     min-width: 96px;
-    justify-content: center;
+    justify-content: center
 }
 
 .timesheet-detail-header {
     display: flex;
     justify-content: space-between;
     gap: 16px;
-    align-items: flex-start;
+    align-items: flex-start
 }
 
 .timesheet-metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(120px, 1fr));
     gap: 12px;
-    margin-top: 14px;
+    margin-top: 14px
 }
 
 .selected-timesheet-actions {
@@ -1715,7 +1520,7 @@ body.modal-open {
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
-    margin-top: 14px;
+    margin-top: 14px
 }
 
 .compact-action-bar,
@@ -1723,7 +1528,7 @@ body.modal-open {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 0;
+    margin-top: 0
 }
 
 .timesheet-help-box {
@@ -1734,7 +1539,7 @@ body.modal-open {
     border: 1px dashed #cbd5e1;
     color: #475569;
     font-size: 13px;
-    line-height: 1.45;
+    line-height: 1.45
 }
 
 .timesheet-warning-box {
@@ -1745,12 +1550,7 @@ body.modal-open {
     border: 1px solid #fed7aa;
     color: #9a3412;
     font-size: 13px;
-    line-height: 1.45;
-}
-
-/* Work log modal */
-body.modal-open {
-    overflow: hidden;
+    line-height: 1.45
 }
 
 .worklog-modal-overlay {
@@ -1761,11 +1561,11 @@ body.modal-open {
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(15, 23, 42, 0.58);
+    background: rgba(15, 23, 42, 0.58)
 }
 
 .worklog-modal-overlay.hidden {
-    display: none;
+    display: none
 }
 
 .worklog-modal-card {
@@ -1776,7 +1576,7 @@ body.modal-open {
     border-radius: 18px;
     background: #ffffff;
     box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
-    overflow: hidden;
+    overflow: hidden
 }
 
 .worklog-modal-header {
@@ -1786,20 +1586,20 @@ body.modal-open {
     gap: 16px;
     padding: 18px 20px;
     border-bottom: 1px solid #e5e7eb;
-    background: #f9fafb;
+    background: #f9fafb
 }
 
 .worklog-modal-title {
     margin: 0;
     font-size: 18px;
     font-weight: 800;
-    color: #111827;
+    color: #111827
 }
 
 .worklog-modal-subtitle {
     margin-top: 4px;
     font-size: 13px;
-    color: #6b7280;
+    color: #6b7280
 }
 
 .worklog-modal-close {
@@ -1811,31 +1611,31 @@ body.modal-open {
     color: #111827;
     font-size: 24px;
     line-height: 1;
-    cursor: pointer;
+    cursor: pointer
 }
 
 .worklog-modal-close:hover {
-    background: #f3f4f6;
+    background: #f3f4f6
 }
 
 .worklog-modal-body {
     overflow-y: auto;
     padding: 18px 20px 22px;
-    background: #f8fafc;
+    background: #f8fafc
 }
 
 .worklog-summary-strip {
     display: grid;
     grid-template-columns: repeat(4, minmax(130px, 1fr));
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 16px
 }
 
 .worklog-summary-strip div {
     padding: 12px;
     border-radius: 14px;
     background: #ffffff;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e5e7eb
 }
 
 .worklog-summary-strip span {
@@ -1844,34 +1644,34 @@ body.modal-open {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b7280;
+    color: #6b7280
 }
 
 .worklog-summary-strip strong {
     display: block;
     margin-top: 4px;
     font-size: 14px;
-    color: #111827;
+    color: #111827
 }
 
 .worklog-card-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 12px
 }
 
 .worklog-card {
     padding: 15px;
     border: 1px solid #e5e7eb;
     border-radius: 16px;
-    background: #ffffff;
+    background: #ffffff
 }
 
 .worklog-card-header {
     display: flex;
     justify-content: space-between;
     gap: 14px;
-    align-items: flex-start;
+    align-items: flex-start
 }
 
 .worklog-project-line {
@@ -1880,7 +1680,7 @@ body.modal-open {
     gap: 7px;
     align-items: center;
     font-size: 14px;
-    color: #111827;
+    color: #111827
 }
 
 .worklog-project-line span,
@@ -1893,14 +1693,14 @@ body.modal-open {
     color: #3730a3;
     font-size: 11px;
     font-weight: 800;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.02em
 }
 
 .worklog-milestone-line {
     margin-top: 5px;
     color: #64748b;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 600
 }
 
 .worklog-task-line {
@@ -1913,28 +1713,28 @@ body.modal-open {
     border-radius: 13px;
     background: #f9fafb;
     border: 1px solid #eef2f7;
-    color: #111827;
+    color: #111827
 }
 
 .worklog-task-line em {
     color: #dc2626;
     font-size: 12px;
     font-style: normal;
-    font-weight: 800;
+    font-weight: 800
 }
 
 .worklog-meta-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(120px, 1fr));
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 12px
 }
 
 .worklog-meta-grid div {
     padding: 10px 11px;
     border-radius: 12px;
     background: #ffffff;
-    border: 1px solid #eef2f7;
+    border: 1px solid #eef2f7
 }
 
 .worklog-meta-grid span,
@@ -1944,25 +1744,25 @@ body.modal-open {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #6b7280;
+    color: #6b7280
 }
 
 .worklog-meta-grid strong {
     display: block;
     margin-top: 3px;
     font-size: 13px;
-    color: #111827;
+    color: #111827
 }
 
 .worklog-description {
-    margin-top: 12px;
+    margin-top: 12px
 }
 
 .worklog-description p {
     margin: 5px 0 0;
     color: #374151;
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.5
 }
 
 .worklog-card-actions {
@@ -1970,44 +1770,40 @@ body.modal-open {
     flex-wrap: wrap;
     gap: 8px;
     justify-content: flex-end;
-    margin-top: 12px;
+    margin-top: 12px
 }
 
-.danger-text {
-    color: var(--danger);
-    font-weight: 700;
-}
-
-@media (max-width: 1150px) {
+@media (max-width:1150px) {
     .timesheet-top-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .time-log-form-card .timesheet-form-grid {
-        grid-template-columns: repeat(2, minmax(160px, 1fr));
+        grid-template-columns: repeat(2, minmax(160px, 1fr))
     }
 
     .timesheet-list-item {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .timesheet-list-actions {
         justify-content: flex-start;
         min-width: 0;
-        max-width: none;
+        max-width: none
     }
 
     .timesheet-list-topline {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr auto
     }
 
     .timesheet-card-metrics,
     .timesheet-metrics {
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        grid-template-columns: repeat(2, minmax(120px, 1fr))
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width:760px) {
+
     .timesheet-form-grid,
     .create-timesheet-card .timesheet-form-grid,
     .time-log-form-card .timesheet-form-grid,
@@ -2015,41 +1811,36 @@ body.modal-open {
     .timesheet-metrics,
     .worklog-summary-strip,
     .worklog-meta-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .create-timesheet-card .admin-only-field:not(.hidden) {
-        grid-column: auto;
+        grid-column: auto
     }
 
     .timesheet-main-header,
     .timesheet-detail-header {
-        flex-direction: column;
+        flex-direction: column
     }
 
     .worklog-modal-overlay {
         align-items: stretch;
-        padding: 10px;
+        padding: 10px
     }
 
     .worklog-modal-card {
         width: 100%;
-        max-height: 96vh;
+        max-height: 96vh
     }
 
     .worklog-modal-header {
-        padding: 14px 15px;
+        padding: 14px 15px
     }
 
     .worklog-modal-body {
-        padding: 14px;
+        padding: 14px
     }
 }
-
-/* =========================================================
-   Support Projects + Support Tickets UI
-   Append this block at the bottom of style.css
-   ========================================================= */
 
 .project-tab-bar {
     display: flex;
@@ -2059,7 +1850,7 @@ body.modal-open {
     padding: 6px;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: #f8f7f3;
+    background: #f8f7f3
 }
 
 .project-tab {
@@ -2070,31 +1861,27 @@ body.modal-open {
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 800;
-    cursor: pointer;
+    cursor: pointer
 }
 
 .project-tab:hover {
     color: var(--primary-dark);
-    background: var(--primary-light);
+    background: var(--primary-light)
 }
 
 .project-tab.active {
     color: #ffffff;
     background: var(--primary);
     border-color: var(--primary);
-    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16);
+    box-shadow: 0 8px 18px rgba(15, 118, 110, 0.16)
 }
 
 .project-tab-panel.hidden {
-    display: none;
+    display: none
 }
 
 .support-project-table table {
-    min-width: 1450px;
-}
-
-body.modal-open {
-    overflow: hidden;
+    min-width: 1450px
 }
 
 .support-modal-overlay {
@@ -2105,11 +1892,11 @@ body.modal-open {
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: rgba(15, 23, 42, 0.58);
+    background: rgba(15, 23, 42, 0.58)
 }
 
 .support-modal-overlay.hidden {
-    display: none;
+    display: none
 }
 
 .support-modal-card {
@@ -2121,7 +1908,7 @@ body.modal-open {
     background: var(--card-bg);
     border: 1px solid var(--border);
     box-shadow: 0 24px 80px rgba(15, 23, 42, 0.35);
-    overflow: hidden;
+    overflow: hidden
 }
 
 .support-modal-header {
@@ -2131,20 +1918,20 @@ body.modal-open {
     gap: 16px;
     padding: 18px 20px;
     border-bottom: 1px solid var(--border);
-    background: #f7eee4;
+    background: #f7eee4
 }
 
 .support-modal-title {
     margin: 0;
     color: var(--text-main);
     font-size: 18px;
-    font-weight: 800;
+    font-weight: 800
 }
 
 .support-modal-subtitle {
     margin-top: 4px;
     color: var(--text-muted);
-    font-size: 12.5px;
+    font-size: 12.5px
 }
 
 .support-modal-close {
@@ -2156,19 +1943,19 @@ body.modal-open {
     color: var(--text-main);
     font-size: 24px;
     line-height: 1;
-    cursor: pointer;
+    cursor: pointer
 }
 
 .support-modal-body {
     padding: 18px 20px 22px;
-    overflow-y: auto;
+    overflow-y: auto
 }
 
 .support-ticket-grid {
     display: grid;
     grid-template-columns: minmax(360px, 430px) minmax(0, 1fr);
     gap: 16px;
-    align-items: start;
+    align-items: start
 }
 
 .support-ticket-left,
@@ -2176,11 +1963,11 @@ body.modal-open {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-width: 0;
+    min-width: 0
 }
 
 .support-ticket-form-grid {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(150px, 1fr))
 }
 
 .support-project-summary {
@@ -2188,38 +1975,38 @@ body.modal-open {
     padding: 12px;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    background: #f8fafc;
+    background: #f8fafc
 }
 
 .support-project-summary.empty-state {
     background: transparent;
-    border: 1px dashed #cbd5e1;
+    border: 1px dashed #cbd5e1
 }
 
 .support-project-title {
     color: var(--text-main);
     font-size: 13px;
     font-weight: 800;
-    line-height: 1.4;
+    line-height: 1.4
 }
 
 .support-project-meta {
     margin-top: 5px;
     color: var(--text-muted);
     font-size: 12px;
-    line-height: 1.35;
+    line-height: 1.35
 }
 
 .support-ticket-summary-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(110px, 1fr));
-    gap: 10px;
+    gap: 10px
 }
 
 .support-ticket-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 12px
 }
 
 .support-ticket-card {
@@ -2228,37 +2015,37 @@ body.modal-open {
     border-left: 4px solid var(--primary);
     border-radius: 16px;
     background: var(--card-bg);
-    box-shadow: var(--shadow-soft);
+    box-shadow: var(--shadow-soft)
 }
 
 .support-ticket-card.priority-p1 {
-    border-left-color: #c2410c;
+    border-left-color: #c2410c
 }
 
 .support-ticket-card.priority-p2 {
-    border-left-color: #b45309;
+    border-left-color: #b45309
 }
 
 .support-ticket-card.priority-p3 {
-    border-left-color: #0f766e;
+    border-left-color: #0f766e
 }
 
 .support-ticket-card.priority-p4 {
-    border-left-color: #64748b;
+    border-left-color: #64748b
 }
 
 .support-ticket-card-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 14px;
+    gap: 14px
 }
 
 .support-ticket-code {
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 900;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em
 }
 
 .support-ticket-title {
@@ -2266,28 +2053,28 @@ body.modal-open {
     color: var(--text-main);
     font-size: 15px;
     font-weight: 800;
-    line-height: 1.35;
+    line-height: 1.35
 }
 
 .support-ticket-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    justify-content: flex-end;
+    justify-content: flex-end
 }
 
 .support-ticket-meta-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(140px, 1fr));
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 12px
 }
 
 .support-ticket-meta-grid div {
     padding: 9px 10px;
     border: 1px solid #eef2f7;
     border-radius: 12px;
-    background: #ffffff;
+    background: #ffffff
 }
 
 .support-ticket-meta-grid span {
@@ -2296,14 +2083,14 @@ body.modal-open {
     font-size: 10.5px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.04em
 }
 
 .support-ticket-meta-grid strong {
     display: block;
     margin-top: 3px;
     color: var(--text-main);
-    font-size: 12.5px;
+    font-size: 12.5px
 }
 
 .support-ticket-description {
@@ -2311,7 +2098,7 @@ body.modal-open {
     color: var(--text-body);
     font-size: 13px;
     line-height: 1.5;
-    white-space: pre-wrap;
+    white-space: pre-wrap
 }
 
 .support-ticket-note {
@@ -2322,45 +2109,209 @@ body.modal-open {
     border: 1px dashed #cbd5e1;
     color: var(--text-body);
     font-size: 12.5px;
-    line-height: 1.45;
+    line-height: 1.45
 }
 
 .support-ticket-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 12px
 }
 
 .compact-actions {
-    margin-top: 0;
+    margin-top: 0
 }
 
-@media (max-width: 1100px) {
+@media (max-width:1100px) {
     .support-ticket-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .support-ticket-summary-row,
     .support-ticket-meta-grid {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        grid-template-columns: repeat(2, minmax(140px, 1fr))
     }
 }
 
-@media (max-width: 700px) {
+@media (max-width:700px) {
+
     .support-ticket-form-grid,
     .support-ticket-summary-row,
     .support-ticket-meta-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr
     }
 
     .support-ticket-card-header {
-        flex-direction: column;
+        flex-direction: column
     }
 
     .support-ticket-badges {
-        justify-content: flex-start;
+        justify-content: flex-start
     }
 }
 
+.person-name {
+    color: var(--text-main);
+    font-weight: 700;
+    line-height: 1.35
+}
 
+.reporting-line {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.35
+}
+
+.reporting-line-compact {
+    margin-top: 3px
+}
+
+.reporting-label {
+    color: #64748b;
+    font-weight: 700
+}
+
+.reporting-designation {
+    color: #87909c;
+    font-weight: 500
+}
+
+.user-meta {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.2
+}
+
+.user-name {
+    overflow: hidden;
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-overflow: ellipsis
+}
+
+.user-role {
+    margin-top: 2px;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.76);
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis
+}
+
+.user-reporting {
+    min-width: 0;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 10px;
+    line-height: 1.2;
+    white-space: nowrap
+}
+
+.user-reporting>.bi {
+    flex: 0 0 auto;
+    color: #f8d7e5;
+    font-size: 10.5px
+}
+
+.user-reporting-label {
+    flex: 0 0 auto;
+    color: rgba(255, 255, 255, 0.62);
+    font-weight: 600
+}
+
+.user-manager-name {
+    min-width: 0;
+    overflow: hidden;
+    color: #ffffff;
+    font-weight: 800;
+    text-overflow: ellipsis
+}
+
+.user-manager-title {
+    flex: 0 1 auto;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.66);
+    font-weight: 500;
+    text-overflow: ellipsis
+}
+
+@media (max-width:1250px) {
+    .topbar-main {
+        grid-template-columns: minmax(220px, 320px) minmax(220px, 1fr) auto;
+        gap: 14px;
+        padding-right: 18px;
+        padding-left: 18px
+    }
+
+    .topbar-right {
+        gap: 9px
+    }
+
+    .user-chip {
+        min-width: 225px;
+        max-width: 285px
+    }
+
+    .user-manager-title {
+        display: none
+    }
+}
+
+@media (max-width:980px) {
+    .topbar-main {
+        grid-template-columns: minmax(220px, 1fr) auto
+    }
+
+    .topbar-search {
+        display: none
+    }
+}
+
+@media (max-width:780px) {
+    .topbar-right {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap
+    }
+
+    .user-manager-title {
+        display: inline
+    }
+
+    .logout-link {
+        margin-left: auto
+    }
+}
+
+@media (max-width:520px) {
+    .notification-btn {
+        display: none
+    }
+
+    .user-chip {
+        width: 100%;
+        flex-basis: 100%
+    }
+
+    .logout-link {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center
+    }
+}

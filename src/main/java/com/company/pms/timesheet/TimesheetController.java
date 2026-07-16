@@ -23,7 +23,7 @@ public class TimesheetController {
     @GetMapping("/timesheets")
     public List<TimesheetDto> getTimesheets(Authentication authentication) {
         AppUser currentUser = getCurrentUser(authentication);
-        return timesheetService.getTimesheetsForUser(currentUser);
+        return timesheetService.getVisibleTimesheets(currentUser);
     }
 
     @GetMapping("/timesheets/my")

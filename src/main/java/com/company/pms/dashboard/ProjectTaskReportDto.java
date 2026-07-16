@@ -29,6 +29,10 @@ public class ProjectTaskReportDto {
 
     private String resourceName;
 
+    private String reportingManagerName;
+
+    private String reportingManagerDesignation;
+
     private String resourceLocation;
 
     private LocalDate startDate;

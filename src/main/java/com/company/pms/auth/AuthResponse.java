@@ -28,4 +28,10 @@ public class AuthResponse {
     private Long managerUserId;
 
     private String managerName;
+
+    private String managerDesignation;
+
+    private String managerRole;
+
+    private String managerDisplayRole;
 }

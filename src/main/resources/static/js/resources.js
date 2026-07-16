@@ -52,7 +52,7 @@ document.getElementById("resourceForm").addEventListener("submit", async functio
 
     const resource = {
         resourceName: document.getElementById("resourceName").value.trim(),
-        role: document.getElementById("designation").value.trim(),
+        designation: document.getElementById("designation").value.trim(),
         department: document.getElementById("department").value.trim(),
         country: document.getElementById("country").value,
         location: document.getElementById("location").value.trim(),
@@ -123,9 +123,11 @@ function populateAssignableUserDropdown(users) {
     select.innerHTML = `<option value="">No login account yet</option>`;
 
     users.forEach(user => {
+        const manager = user.managerName ? ` | Reports to: ${user.managerName}` : " | Reports to: Not assigned";
+
         select.innerHTML += `
             <option value="${user.id}">
-                ${user.name} / ${user.username} - ${user.displayRole || user.role || "-"} (${user.country || "-"})
+                ${user.name} / ${user.username} - ${user.displayRole || user.role || "-"} (${user.country || "-"})${manager}
             </option>
         `;
     });
@@ -146,7 +148,7 @@ function renderResources(resources) {
     if (!resources || resources.length === 0) {
         table.innerHTML = `
             <tr>
-                <td colspan="11" class="empty-state">No resources found</td>
+                <td colspan="12" class="empty-state">No resources found</td>
             </tr>
         `;
         return;
@@ -167,6 +169,7 @@ function renderResources(resources) {
             : `<span class="muted-small">No login linked</span>`
         }
 </td>
+            <td>${formatReportingManager(resource)}</td>
             <td>${PMS.isAdminOrDeliveryHead() ? PMS.formatHourlyUsdFromMonthlyInr(resource.monthlySalary) : "Restricted"}</td>
             <td>${PMS.badge(resource.status)}</td>
             ${canModifyResource
@@ -178,6 +181,18 @@ function renderResources(resources) {
         }
         </tr>
     `).join("");
+}
+
+function formatReportingManager(resource) {
+    if (!resource || !resource.reportingManagerName) {
+        return `<span class="muted-small">Not assigned</span>`;
+    }
+
+    const designation = resource.reportingManagerDesignation
+        ? `<div class="muted-small">${resource.reportingManagerDesignation}</div>`
+        : "";
+
+    return `${resource.reportingManagerName}${designation}`;
 }
 
 async function editResource(id) {

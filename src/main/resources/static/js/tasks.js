@@ -358,10 +358,11 @@ function populateAssigneeDropdown(members, selectedResourceId) {
         const projectRole = member.projectRole ? ` / ${member.projectRole}` : "";
         const allocation = member.allocationPercentage ? ` / ${member.allocationPercentage}%` : "";
         const location = resource.location ? ` / ${resource.location}` : "";
+        const manager = resource.reportingManagerName ? ` / Reports to: ${resource.reportingManagerName}` : " / Reports to: Not assigned";
 
         select.innerHTML += `
             <option value="${resource.id}" ${selected}>
-                ${escapeHtml(resource.resourceName)}${escapeHtml(designation)}${escapeHtml(projectRole)}${escapeHtml(allocation)}${escapeHtml(location)}
+                ${escapeHtml(resource.resourceName)}${escapeHtml(designation)}${escapeHtml(projectRole)}${escapeHtml(allocation)}${escapeHtml(location)}${escapeHtml(manager)}
             </option>
         `;
     });
@@ -405,7 +406,9 @@ function renderTasks(tasks) {
 
         const resourceColumn = hideDetailedTaskColumnsForEmployee
             ? ""
-            : `<td>${task.assignedResource ? escapeHtml(task.assignedResource.resourceName) : "-"}</td>`;
+            : `<td>${task.assignedResource
+                ? `${escapeHtml(task.assignedResource.resourceName)}<div class="muted-small">Reports to: ${escapeHtml(task.assignedResource.reportingManagerName || "Not assigned")}</div>`
+                : "-"}</td>`;
 
         const resourceLocationColumn = hideDetailedTaskColumnsForEmployee
             ? ""
@@ -538,30 +541,69 @@ async function editTask(id) {
 }
 
 async function updateTaskProgress(id) {
-    const task = tasksCache.find(item => item.id === id);
+    const task =
+        tasksCache.find(
+            item =>
+                item.id === id
+        );
 
     if (!task) {
-        alert("Task not found");
+        PMS_UI.toast(
+            "Task could not be found.",
+            "error"
+        );
+
         return;
     }
 
-    const currentProgress = task.progressPercentage || 0;
-    const value = prompt("Enter completion percentage from 0 to 100", currentProgress);
+    const currentProgress =
+        task.progressPercentage || 0;
+
+    const value =
+        await PMS_UI.prompt({
+            title:
+                "Update task progress",
+
+            message:
+                `${task.taskName || "Task"} — enter completion percentage.`,
+
+            value:
+                String(currentProgress),
+
+            type:
+                "number",
+
+            min:
+                0,
+
+            max:
+                100,
+
+            required:
+                true
+        });
 
     if (value === null) {
         return;
     }
 
-    const progressPercentage = Number(value);
-
-    if (Number.isNaN(progressPercentage) || progressPercentage < 0 || progressPercentage > 100) {
-        alert("Please enter a valid percentage between 0 and 100.");
-        return;
-    }
+    const progressPercentage =
+        Number(value);
 
     try {
-        await PMS.apiPut(`/api/tasks/${id}/progress`, { progressPercentage });
+        await PMS.apiPut(
+            `/api/tasks/${id}/progress`,
+            {
+                progressPercentage
+            }
+        );
+
         await loadTasks();
+
+        PMS_UI.toast(
+            "Task progress updated successfully.",
+            "success"
+        );
     } catch (error) {
         PMS.showError(error);
     }
@@ -569,11 +611,21 @@ async function updateTaskProgress(id) {
 
 async function viewTaskTimeSummary(id) {
     try {
-        const summary = await PMS.apiGet(`/api/tasks/${id}/time-summary`);
+        const summary = await PMS.apiGet(
+            `/api/tasks/${id}/time-summary`
+        );
+
+        const reportingManagerDesignation =
+            summary.reportingManagerDesignation
+                ? ` (${summary.reportingManagerDesignation})`
+                : "";
 
         alert(
             `Task: ${summary.taskName || "-"}\n` +
-            `Resource: ${summary.resourceName || "-"}\n\n` +
+            `Resource: ${summary.resourceName || "-"}\n` +
+            `Reports to: ${summary.reportingManagerName || "Not assigned"}` +
+            `${reportingManagerDesignation}\n\n` +
+
             `Allocated Hours: ${formatPlainHours(summary.allocatedHours)}\n` +
             `Draft Hours: ${formatPlainHours(summary.draftHours)}\n` +
             `Pending Approval Hours: ${formatPlainHours(summary.pendingApprovalHours)}\n` +
@@ -581,6 +633,7 @@ async function viewTaskTimeSummary(id) {
             `Rejected Hours: ${formatPlainHours(summary.rejectedHours)}\n` +
             `Remaining Hours: ${formatPlainHours(summary.remainingHours)}\n` +
             `Overrun Hours: ${formatPlainHours(summary.overrunHours)}\n\n` +
+
             `Planned Cost: ${PMS.formatMoney(summary.plannedCost)}\n` +
             `Actual Cost: ${PMS.formatMoney(summary.actualCost)}\n` +
             `Cost Variance: ${PMS.formatMoney(summary.costVariance)}`

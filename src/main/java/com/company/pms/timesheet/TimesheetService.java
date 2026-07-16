@@ -16,7 +16,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -59,6 +62,72 @@ public class TimesheetService {
         return timesheets.stream()
                 .map(this::mapToTimesheetDto)
                 .collect(Collectors.toList());
+    }
+
+    public List<TimesheetDto> getVisibleTimesheets(AppUser currentUser) {
+        if (currentUser == null) {
+            throw new RuntimeException("User is not logged in");
+        }
+
+        if ("ADMIN".equals(currentUser.getRole())) {
+            return timesheetRepository.findAllByOrderByPeriodStartDesc()
+                    .stream()
+                    .map(this::mapToTimesheetDto)
+                    .collect(Collectors.toList());
+        }
+
+        Map<Long, Timesheet> visibleTimesheets = new LinkedHashMap<>();
+
+        addTimesheets(
+                visibleTimesheets,
+                timesheetRepository.findByResourceAppUserIdOrderByPeriodStartDesc(currentUser.getId()));
+
+        addTimesheets(
+                visibleTimesheets,
+                timesheetRepository.findByResourceAppUserManagerUserIdOrderByPeriodStartDesc(currentUser.getId()));
+
+        switch (currentUser.getRole()) {
+            case "DELIVERY_HEAD" -> {
+                addTimesheets(
+                        visibleTimesheets,
+                        timesheetRepository.findDistinctVisibleByProjectDeliveryHeadUserId(currentUser.getId()));
+
+                if (currentUser.getCountry() != null && !currentUser.getCountry().isBlank()) {
+                    addTimesheets(
+                            visibleTimesheets,
+                            timesheetRepository.findDistinctVisibleByProjectCountry(currentUser.getCountry()));
+                }
+            }
+            case "DELIVERY_MANAGER" -> addTimesheets(
+                    visibleTimesheets,
+                    timesheetRepository.findDistinctVisibleByProjectDeliveryManagerUserId(currentUser.getId()));
+            case "TL" -> addTimesheets(
+                    visibleTimesheets,
+                    timesheetRepository.findDistinctVisibleByProjectTlUserId(currentUser.getId()));
+            default -> {
+                // TEAM_MEMBER receives only own timesheets from the first query.
+            }
+        }
+
+        return visibleTimesheets.values()
+                .stream()
+                .sorted(Comparator.comparing(
+                        Timesheet::getPeriodStart,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::mapToTimesheetDto)
+                .collect(Collectors.toList());
+    }
+
+    private void addTimesheets(Map<Long, Timesheet> target, List<Timesheet> source) {
+        if (source == null) {
+            return;
+        }
+
+        source.forEach(timesheet -> {
+            if (timesheet != null && timesheet.getId() != null) {
+                target.putIfAbsent(timesheet.getId(), timesheet);
+            }
+        });
     }
 
     public List<TimesheetDto> getPendingApprovals(AppUser currentUser) {
@@ -364,45 +433,108 @@ public class TimesheetService {
         return mapToTimesheetDto(saved);
     }
 
-    public TimeSummaryDto getTaskTimeSummary(Long taskId, AppUser currentUser) {
-        TaskEntity task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new RuntimeException("Task not found"));
+    public TimeSummaryDto getTaskTimeSummary(
+        Long taskId,
+        AppUser currentUser) {
 
-        validateCanViewTaskTimeSummary(currentUser, task);
+    TaskEntity task = taskRepository.findById(taskId)
+            .orElseThrow(() -> new RuntimeException("Task not found"));
 
-        double allocatedHours = getAllocatedHours(task);
-        double draftHours = safeDouble(timeLogRepository.sumHoursByTaskAndStatus(taskId, "DRAFT"));
-        double pendingHours = safeDouble(timeLogRepository.sumHoursByTaskAndStatus(taskId, "PENDING_APPROVAL"));
-        double approvedHours = safeDouble(timeLogRepository.sumHoursByTaskAndStatus(taskId, "APPROVED"));
-        double rejectedHours = safeDouble(timeLogRepository.sumHoursByTaskAndStatus(taskId, "REJECTED"));
+    validateCanViewTaskTimeSummary(currentUser, task);
 
-        double remainingHours = Math.max(allocatedHours - approvedHours, 0.0);
-        double overrunHours = Math.max(approvedHours - allocatedHours, 0.0);
+    double allocatedHours = getAllocatedHours(task);
 
-        double hourlyCostUsd = calculateResourceHourlyCostUsd(task.getAssignedResource());
-        double plannedCost = roundToTwoDecimals(allocatedHours * hourlyCostUsd);
-        double actualCost = roundToTwoDecimals(approvedHours * hourlyCostUsd);
-        double costVariance = roundToTwoDecimals(actualCost - plannedCost);
+    double draftHours = safeDouble(
+            timeLogRepository.sumHoursByTaskAndStatus(
+                    taskId,
+                    "DRAFT"
+            )
+    );
 
-        Long resourceId = task.getAssignedResource() != null ? task.getAssignedResource().getId() : null;
-        String resourceName = task.getAssignedResource() != null ? task.getAssignedResource().getResourceName() : "N/A";
+    double pendingHours = safeDouble(
+            timeLogRepository.sumHoursByTaskAndStatus(
+                    taskId,
+                    "PENDING_APPROVAL"
+            )
+    );
 
-        return new TimeSummaryDto(
-                task.getId(),
-                task.getTaskName(),
-                resourceId,
-                resourceName,
-                roundToTwoDecimals(allocatedHours),
-                roundToTwoDecimals(draftHours),
-                roundToTwoDecimals(pendingHours),
-                roundToTwoDecimals(approvedHours),
-                roundToTwoDecimals(rejectedHours),
-                roundToTwoDecimals(remainingHours),
-                roundToTwoDecimals(overrunHours),
-                plannedCost,
-                actualCost,
-                costVariance);
-    }
+    double approvedHours = safeDouble(
+            timeLogRepository.sumHoursByTaskAndStatus(
+                    taskId,
+                    "APPROVED"
+            )
+    );
+
+    double rejectedHours = safeDouble(
+            timeLogRepository.sumHoursByTaskAndStatus(
+                    taskId,
+                    "REJECTED"
+            )
+    );
+
+    double remainingHours = Math.max(
+            allocatedHours - approvedHours,
+            0.0
+    );
+
+    double overrunHours = Math.max(
+            approvedHours - allocatedHours,
+            0.0
+    );
+
+    ResourceEntity assignedResource = task.getAssignedResource();
+
+    double hourlyCostUsd = calculateResourceHourlyCostUsd(
+            assignedResource
+    );
+
+    double plannedCost = roundToTwoDecimals(
+            allocatedHours * hourlyCostUsd
+    );
+
+    double actualCost = roundToTwoDecimals(
+            approvedHours * hourlyCostUsd
+    );
+
+    double costVariance = roundToTwoDecimals(
+            actualCost - plannedCost
+    );
+
+    Long resourceId = assignedResource != null
+            ? assignedResource.getId()
+            : null;
+
+    String resourceName = assignedResource != null
+            ? assignedResource.getResourceName()
+            : "N/A";
+
+    String reportingManagerName = assignedResource != null
+            ? assignedResource.getReportingManagerName()
+            : null;
+
+    String reportingManagerDesignation = assignedResource != null
+            ? assignedResource.getReportingManagerDesignation()
+            : null;
+
+    return new TimeSummaryDto(
+            task.getId(),
+            task.getTaskName(),
+            resourceId,
+            resourceName,
+            reportingManagerName,
+            reportingManagerDesignation,
+            roundToTwoDecimals(allocatedHours),
+            roundToTwoDecimals(draftHours),
+            roundToTwoDecimals(pendingHours),
+            roundToTwoDecimals(approvedHours),
+            roundToTwoDecimals(rejectedHours),
+            roundToTwoDecimals(remainingHours),
+            roundToTwoDecimals(overrunHours),
+            plannedCost,
+            actualCost,
+            costVariance
+    );
+}
 
     private Timesheet getTimesheetEntity(Long id) {
         if (id == null) {
@@ -544,37 +676,32 @@ public class TimesheetService {
     }
 
     private void validateCanViewTimesheet(AppUser user, Timesheet timesheet) {
+        if (!canViewTimesheetInternal(user, timesheet)) {
+            throw new RuntimeException("You do not have permission to view this timesheet");
+        }
+    }
+
+    private boolean canViewTimesheetInternal(AppUser user, Timesheet timesheet) {
+        if (user == null || timesheet == null) {
+            return false;
+        }
+
         if ("ADMIN".equals(user.getRole())) {
-            return;
+            return true;
         }
 
         boolean ownTimesheet = timesheet.getResource() != null
                 && timesheet.getResource().getAppUser() != null
                 && timesheet.getResource().getAppUser().getId().equals(user.getId());
 
-        if (ownTimesheet) {
-            return;
+        if (ownTimesheet || isReportingManagerOfTimesheetOwner(user, timesheet)) {
+            return true;
         }
 
-        /*
-         * Direct reporting manager can view subordinate timesheets.
-         */
-        if (isReportingManagerOfTimesheetOwner(user, timesheet)) {
-            return;
-        }
-
-        /*
-         * Project-level viewing is still allowed for delivery visibility,
-         * but project-level viewing alone no longer gives approval rights.
-         */
         List<TimeLog> logs = timeLogRepository.findByTimesheetIdOrderByLogDateAsc(timesheet.getId());
 
-        boolean hasProjectVisibility = logs.stream()
+        return logs.stream()
                 .anyMatch(log -> canAccessProject(user, log.getProject()));
-
-        if (!hasProjectVisibility) {
-            throw new RuntimeException("You do not have permission to view this timesheet");
-        }
     }
 
     private boolean canCreateTimesheetForResource(AppUser user, ResourceEntity resource) {
@@ -970,6 +1097,11 @@ public class TimesheetService {
 
         Long resourceId = timesheet.getResource() != null ? timesheet.getResource().getId() : null;
         String resourceName = timesheet.getResource() != null ? timesheet.getResource().getResourceName() : "N/A";
+        AppUser ownerUser = getTimesheetOwnerUser(timesheet);
+        AppUser reportingManager = ownerUser != null ? ownerUser.getManagerUser() : null;
+        Long reportingManagerUserId = reportingManager != null ? reportingManager.getId() : null;
+        String reportingManagerName = reportingManager != null ? reportingManager.getName() : null;
+        String reportingManagerDesignation = reportingManager != null ? reportingManager.getDesignation() : null;
         Long submittedByUserId = timesheet.getSubmittedByUser() != null ? timesheet.getSubmittedByUser().getId() : null;
         String submittedByName = timesheet.getSubmittedByUser() != null ? timesheet.getSubmittedByUser().getName()
                 : "N/A";
@@ -980,6 +1112,9 @@ public class TimesheetService {
                 timesheet.getId(),
                 resourceId,
                 resourceName,
+                reportingManagerUserId,
+                reportingManagerName,
+                reportingManagerDesignation,
                 submittedByUserId,
                 submittedByName,
                 timesheet.getPeriodStart(),

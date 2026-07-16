@@ -423,26 +423,36 @@ public class DashboardController {
     }
 
     private EscalatedTaskDto mapToEscalatedTaskDto(TaskEntity task) {
-        String projectName = task.getProject() != null
-                ? task.getProject().getProjectName()
-                : "N/A";
+    String projectName = task.getProject() != null
+            ? task.getProject().getProjectName()
+            : "N/A";
 
-        String resourceName = task.getAssignedResource() != null
-                ? task.getAssignedResource().getResourceName()
-                : "N/A";
+    String resourceName = task.getAssignedResource() != null
+            ? task.getAssignedResource().getResourceName()
+            : "N/A";
 
-        return new EscalatedTaskDto(
-                task.getId(),
-                task.getTaskName(),
-                projectName,
-                resourceName,
-                task.getEscalationReasonType(),
-                task.getEscalationReason(),
-                task.getEscalationSeverity(),
-                task.getEscalationStatus(),
-                task.getEscalationDate());
-    }
+    String reportingManagerName = task.getAssignedResource() != null
+            ? task.getAssignedResource().getReportingManagerName()
+            : null;
 
+    String reportingManagerDesignation = task.getAssignedResource() != null
+            ? task.getAssignedResource().getReportingManagerDesignation()
+            : null;
+
+    return new EscalatedTaskDto(
+            task.getId(),
+            task.getTaskName(),
+            projectName,
+            resourceName,
+            reportingManagerName,
+            reportingManagerDesignation,
+            task.getEscalationReasonType(),
+            task.getEscalationReason(),
+            task.getEscalationSeverity(),
+            task.getEscalationStatus(),
+            task.getEscalationDate()
+    );
+}
     private ProjectSummaryDto mapToProjectSummary(AppUser currentUser,
             Project project,
             List<TaskEntity> tasks) {
@@ -665,52 +675,77 @@ public class DashboardController {
                 escalatedTasks,
                 taskReports);
     }
+        
+    private ProjectTaskReportDto mapToProjectTaskReportDto(
+        TaskEntity task,
+        boolean canViewCost) {
 
-    private ProjectTaskReportDto mapToProjectTaskReportDto(TaskEntity task,
-            boolean canViewCost) {
-        String resourceName = task.getAssignedResource() != null
-                ? task.getAssignedResource().getResourceName()
-                : "N/A";
+    String resourceName = task.getAssignedResource() != null
+            ? task.getAssignedResource().getResourceName()
+            : "N/A";
 
-        String resourceLocation = task.getAssignedResource() != null
-                ? task.getAssignedResource().getLocation()
-                : "N/A";
+    String reportingManagerName = task.getAssignedResource() != null
+            ? task.getAssignedResource().getReportingManagerName()
+            : null;
 
-        Integer taskProgress = task.getProgressPercentage() != null
-                ? task.getProgressPercentage()
-                : 0;
+    String reportingManagerDesignation = task.getAssignedResource() != null
+            ? task.getAssignedResource().getReportingManagerDesignation()
+            : null;
 
-        Double allocatedHours = task.getAllocatedHours() != null ? task.getAllocatedHours() : 0.0;
-        Double approvedHours = canViewCost ? getApprovedHours(task) : null;
-        Double plannedCost = canViewCost ? calculatePlannedTaskCost(task) : null;
-        Double actualCost = canViewCost ? calculateTaskCost(task) : null;
-        Double costVariance = canViewCost
-                ? roundToTwoDecimals(actualCost - plannedCost)
-                : null;
+    String resourceLocation = task.getAssignedResource() != null
+            ? task.getAssignedResource().getLocation()
+            : "N/A";
 
-        Double taskCost = actualCost;
+    Integer taskProgress = task.getProgressPercentage() != null
+            ? task.getProgressPercentage()
+            : 0;
 
-        return new ProjectTaskReportDto(
-                task.getId(),
-                task.getTaskCode(),
-                task.getTaskName(),
-                task.getTaskDescription(),
-                task.getTaskType(),
-                task.getStatus(),
-                taskProgress,
-                task.getPriority(),
-                task.getEscalated(),
-                resourceName,
-                resourceLocation,
-                task.getStartDate(),
-                task.getEndDate(),
-                taskCost,
-                allocatedHours,
-                approvedHours,
-                plannedCost,
-                actualCost,
-                costVariance);
-    }
+    Double allocatedHours = task.getAllocatedHours() != null
+            ? task.getAllocatedHours()
+            : 0.0;
+
+    Double approvedHours = canViewCost
+            ? getApprovedHours(task)
+            : null;
+
+    Double plannedCost = canViewCost
+            ? calculatePlannedTaskCost(task)
+            : null;
+
+    Double actualCost = canViewCost
+            ? calculateTaskCost(task)
+            : null;
+
+    Double costVariance = canViewCost
+            ? roundToTwoDecimals(actualCost - plannedCost)
+            : null;
+
+    Double taskCost = actualCost;
+
+    return new ProjectTaskReportDto(
+            task.getId(),
+            task.getTaskCode(),
+            task.getTaskName(),
+            task.getTaskDescription(),
+            task.getTaskType(),
+            task.getStatus(),
+            taskProgress,
+            task.getPriority(),
+            task.getEscalated(),
+            resourceName,
+            reportingManagerName,
+            reportingManagerDesignation,
+            resourceLocation,
+            task.getStartDate(),
+            task.getEndDate(),
+            taskCost,
+            allocatedHours,
+            approvedHours,
+            plannedCost,
+            actualCost,
+            costVariance
+    );
+}
 
     private void recalculateMilestonesForProjects(List<Project> projects) {
         if (projects == null || projects.isEmpty()) {

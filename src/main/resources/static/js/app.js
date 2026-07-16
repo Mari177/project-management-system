@@ -1,3 +1,77 @@
+(() => {
+    if (
+        window.location.pathname === "/login"
+        || document.body.classList.contains(
+            "login-page"
+        )
+    ) {
+        return;
+    }
+
+    if (
+        !document.querySelector(
+            'meta[name="viewport"]'
+        )
+    ) {
+        const viewport =
+            document.createElement("meta");
+
+        viewport.name =
+            "viewport";
+
+        viewport.content =
+            "width=device-width, initial-scale=1.0";
+
+        document.head.appendChild(
+            viewport
+        );
+    }
+
+    if (
+        !document.querySelector(
+            "link[data-pms-ui-refresh]"
+        )
+    ) {
+        const stylesheet =
+            document.createElement("link");
+
+        stylesheet.rel =
+            "stylesheet";
+
+        stylesheet.href =
+            "/css/ui-refresh.css";
+
+        stylesheet.dataset
+            .pmsUiRefresh =
+            "true";
+
+        document.head.appendChild(
+            stylesheet
+        );
+    }
+
+    if (
+        !document.querySelector(
+            "script[data-pms-ui-refresh]"
+        )
+    ) {
+        const script =
+            document.createElement("script");
+
+        script.src =
+            "/js/ui-refresh.js";
+
+        script.dataset
+            .pmsUiRefresh =
+            "true";
+
+        document.head.appendChild(
+            script
+        );
+    }
+})();
+
+
 const PMS = (() => {
     const API_BASE = "";
 
@@ -7,7 +81,7 @@ const PMS = (() => {
             label: "Dashboard",
             icon: "bi-speedometer2",
             url: "/dashboard",
-            roles: ["ADMIN", "EXECUTIVE_VIEWER", "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL", "TEAM_MEMBER","CLIENT_VIEWER"]
+            roles: ["ADMIN", "EXECUTIVE_VIEWER", "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL", "TEAM_MEMBER", "CLIENT_VIEWER"]
         },
         {
             key: "clients",
@@ -167,8 +241,63 @@ const PMS = (() => {
     }
 
     function initLayout(activeMenu) {
+        /*
+         * Render immediately using the user saved during login.
+         */
         renderSidebar(activeMenu);
         renderTopbar(activeMenu);
+
+        /*
+         * Fetch the latest logged-in user information from the backend.
+         *
+         * This is important because the reporting manager may have been
+         * changed after the employee logged in.
+         */
+        refreshCurrentUser(activeMenu);
+    }
+
+    async function refreshCurrentUser(activeMenu) {
+        try {
+            const response = await fetch(
+                API_BASE + "/api/auth/me",
+                {
+                    credentials: "include"
+                }
+            );
+
+            if (
+                response.status === 401
+                || response.status === 403
+            ) {
+                localStorage.removeItem("pms_user");
+                window.location.href = "/login";
+                return;
+            }
+
+            const currentUser =
+                await readApiResponse(response);
+
+            localStorage.setItem(
+                "pms_user",
+                JSON.stringify(currentUser)
+            );
+
+            /*
+             * Render again with the latest employee and
+             * reporting-manager information.
+             */
+            renderSidebar(activeMenu);
+            renderTopbar(activeMenu);
+        } catch (error) {
+            /*
+             * Continue displaying the cached login information
+             * when the refresh temporarily fails.
+             */
+            console.error(
+                "Unable to refresh current-user information:",
+                error
+            );
+        }
     }
 
     function getPageTitle(activeMenu) {
@@ -271,11 +400,7 @@ const PMS = (() => {
             credentials: "include"
         });
 
-        if (!response.ok) {
-            throw new Error("API error: " + response.status);
-        }
-
-        return response.json();
+        return readApiResponse(response);
     }
 
     async function apiPost(url, data) {
@@ -288,11 +413,7 @@ const PMS = (() => {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-            throw new Error("API error: " + response.status);
-        }
-
-        return response.json();
+        return readApiResponse(response);
     }
 
     async function apiPut(url, data) {
@@ -305,11 +426,7 @@ const PMS = (() => {
             body: JSON.stringify(data)
         });
 
-        if (!response.ok) {
-            throw new Error("API error: " + response.status);
-        }
-
-        return response.json();
+        return readApiResponse(response);
     }
 
     async function apiDelete(url) {
@@ -318,9 +435,40 @@ const PMS = (() => {
             credentials: "include"
         });
 
-        if (!response.ok) {
-            throw new Error("API error: " + response.status);
+        await readApiResponse(response);
+    }
+
+    async function readApiResponse(response) {
+        const responseText = await response.text();
+        let payload = null;
+
+        if (responseText) {
+            try {
+                payload = JSON.parse(responseText);
+            } catch (error) {
+                payload = responseText;
+            }
         }
+
+        if (!response.ok) {
+            let message = `Request failed with status ${response.status}`;
+
+            if (typeof payload === "string" && payload.trim()) {
+                message = payload.trim();
+            } else if (payload && typeof payload === "object") {
+                message = payload.message
+                    || payload.detail
+                    || payload.error
+                    || message;
+            }
+
+            const apiError = new Error(message);
+            apiError.status = response.status;
+            apiError.path = payload && typeof payload === "object" ? payload.path : null;
+            throw apiError;
+        }
+
+        return payload;
     }
 
     function formatMoney(value) {
@@ -376,7 +524,11 @@ const PMS = (() => {
 
     function showError(error) {
         console.error(error);
-        alert("Something went wrong. Please check backend and console.");
+        const message = error && error.message
+            ? error.message
+            : "Something went wrong. Please try again.";
+
+        alert(message);
     }
 
     function renderSidebar(activeMenu) {
@@ -416,53 +568,200 @@ const PMS = (() => {
     }
 
     function renderTopbar(activeMenu) {
-        const topbar = document.getElementById("topbar");
+    const topbar =
+        document.getElementById("topbar");
 
-        if (!topbar) {
-            return;
-        }
+    if (!topbar) {
+        return;
+    }
 
-        const user = getUser();
-        const title = getPageTitle(activeMenu);
-        const subtitle = getPageSubtitle(activeMenu);
-        const initials = getUserInitials(user);
+    const user = getUser();
 
-        topbar.innerHTML = `
-            <div class="topbar-main">
-                <div class="topbar-left">
-                    <div class="page-title">${title}</div>
-                    <div class="page-subtitle">${subtitle}</div>
+    const title =
+        getPageTitle(activeMenu);
+
+    const subtitle =
+        getPageSubtitle(activeMenu);
+
+    const initials =
+        getUserInitials(user);
+
+    const userName =
+        user && user.name
+            ? user.name
+            : "User";
+
+    const userDisplayRole =
+        user
+            ? (
+                user.displayRole
+                || formatRole(user.role)
+            )
+            : "";
+
+    const userDesignation =
+        user && user.designation
+            ? user.designation
+            : "";
+
+    const userPosition =
+        buildPositionText(
+            userDesignation,
+            userDisplayRole
+        );
+
+    const hasReportingManager = Boolean(
+        user
+        && user.managerUserId
+        && user.managerName
+    );
+
+    const managerName =
+        hasReportingManager
+            ? user.managerName
+            : "Not assigned";
+
+    const managerPosition =
+        hasReportingManager
+            ? buildPositionText(
+                user.managerDesignation || "",
+                user.managerDisplayRole
+                    || formatRole(user.managerRole)
+            )
+            : "";
+
+    const managerTitle =
+        managerPosition
+            ? ` · ${managerPosition}`
+            : "";
+
+    topbar.innerHTML = `
+        <div class="topbar-main">
+
+            <div class="topbar-left">
+                <div class="page-title">
+                    ${escapeHtml(title)}
                 </div>
 
-                <div class="topbar-search">
-                    <i class="bi bi-search search-icon"></i>
-                    <input type="text"
-                           placeholder="Search project, task, client or resource"
-                           oninput="PMS.handleGlobalSearchInput(this.value)">
-                    <span class="search-shortcut">Alt + K</span>
-                </div>
-
-                <div class="topbar-right">
-                    <button class="notification-btn" title="Notifications">
-                        <i class="bi bi-bell"></i>
-                    </button>
-
-                    <div class="user-chip">
-                        <div class="user-avatar">${initials}</div>
-                        <div class="user-meta">
-                            <div class="user-name">${user ? user.name : "User"}</div>
-                           <div class="user-role">${user ? (user.designation || user.displayRole || formatRole(user.role)) : ""}</div>  
-                        </div>
-                    </div>
-
-                    <button class="logout-link" onclick="PMS.logout()">
-                        <i class="bi bi-box-arrow-right"></i>
-                        Logout
-                    </button>
+                <div class="page-subtitle">
+                    ${escapeHtml(subtitle)}
                 </div>
             </div>
-        `;
+
+            <div class="topbar-search">
+                <i class="bi bi-search search-icon"></i>
+
+                <input
+                    type="text"
+                    placeholder="Search project, task, client or resource"
+                    aria-label="Search project, task, client or resource"
+                    oninput="PMS.handleGlobalSearchInput(this.value)"
+                >
+
+                <span class="search-shortcut">
+                    Alt + K
+                </span>
+            </div>
+
+            <div class="topbar-right">
+
+                <button
+                    class="notification-btn"
+                    type="button"
+                    title="Notifications"
+                    aria-label="Notifications"
+                >
+                    <i class="bi bi-bell"></i>
+                </button>
+
+                <div
+                    class="user-chip"
+                    title="Logged-in employee and reporting manager"
+                >
+                    <div class="user-avatar">
+                        ${escapeHtml(initials)}
+                    </div>
+
+                    <div class="user-meta">
+
+                        <div class="user-name">
+                            ${escapeHtml(userName)}
+                        </div>
+
+                        <div class="user-role">
+                            ${escapeHtml(userPosition)}
+                        </div>
+
+                        <div class="user-reporting">
+                            <i
+                                class="bi bi-diagram-3"
+                                aria-hidden="true"
+                            ></i>
+
+                            <span class="user-reporting-label">
+                                Reports to:
+                            </span>
+
+                            <span class="user-manager-name">
+                                ${escapeHtml(managerName)}
+                            </span>
+
+                            <span class="user-manager-title">
+                                ${escapeHtml(managerTitle)}
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <button
+                    class="logout-link"
+                    type="button"
+                    onclick="PMS.logout()"
+                >
+                    <i class="bi bi-box-arrow-right"></i>
+                    Logout
+                </button>
+
+            </div>
+        </div>
+    `;
+}
+
+function buildPositionText(
+    designation,
+    displayRole
+) {
+    const safeDesignation = String(
+        designation || ""
+    ).trim();
+
+    const safeDisplayRole = String(
+        displayRole || ""
+    ).trim();
+
+    if (
+        safeDesignation
+        && safeDisplayRole
+        && safeDesignation.toLowerCase()
+            !== safeDisplayRole.toLowerCase()
+    ) {
+        return `${safeDesignation} · ${safeDisplayRole}`;
     }
+
+    return safeDesignation
+        || safeDisplayRole
+        || "Designation not assigned";
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
     function getUserInitials(user) {
         if (!user || !user.name) {
@@ -509,9 +808,9 @@ const PMS = (() => {
     }
 
     function isClientViewer() {
-    const user = getUser();
-    return user && user.role === "CLIENT_VIEWER";
-}
+        const user = getUser();
+        return user && user.role === "CLIENT_VIEWER";
+    }
 
 
     return {

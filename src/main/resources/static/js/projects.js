@@ -287,9 +287,10 @@ async function loadResourcesDropdown() {
         resourcesCache.forEach(resource => {
             const designation = resource.designation ? ` - ${resource.designation}` : "";
             const location = resource.location ? ` - ${resource.location}` : "";
+            const manager = resource.reportingManagerName ? ` - Reports to: ${resource.reportingManagerName}` : " - Reports to: Not assigned";
             select.innerHTML += `
                 <option value="${resource.id}">
-                    ${escapeHtml(resource.resourceName || "-")}${escapeHtml(designation)}${escapeHtml(location)}
+                    ${escapeHtml(resource.resourceName || "-")}${escapeHtml(designation)}${escapeHtml(location)}${escapeHtml(manager)}
                 </option>
             `;
         });
@@ -641,7 +642,10 @@ function renderProjectMembers(members) {
         return `
             <tr>
                 <td>${member.id}</td>
-                <td>${escapeHtml(resource.resourceName || "-")}</td>
+                <td>
+                    ${escapeHtml(resource.resourceName || "-")}
+                    <div class="muted-small">Reports to: ${escapeHtml(resource.reportingManagerName || "Not assigned")}</div>
+                </td>
                 <td>${escapeHtml(resource.designation || "-")}</td>
                 <td>${escapeHtml(formatProjectRole(member.projectRole))}</td>
                 <td>${member.allocationPercentage || 0}%</td>

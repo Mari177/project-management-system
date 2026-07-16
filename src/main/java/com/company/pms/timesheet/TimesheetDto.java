@@ -17,6 +17,12 @@ public class TimesheetDto {
 
     private String resourceName;
 
+    private Long reportingManagerUserId;
+
+    private String reportingManagerName;
+
+    private String reportingManagerDesignation;
+
     private Long submittedByUserId;
 
     private String submittedByName;

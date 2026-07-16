@@ -458,7 +458,9 @@ function renderMilestoneTaskTable(tasks) {
                         <tr>
                             <td>
                                 <strong>${escapeHtml(task.taskCode || "-")}</strong>
-                                <div class="muted-small">${escapeHtml(task.taskType || "")}</div>
+                                <div class="muted-small">
+                                    ${escapeHtml(task.taskType || "")}
+                                </div>
                             </td>
 
                             <td>
@@ -469,28 +471,80 @@ function renderMilestoneTaskTable(tasks) {
                                 ${escapeHtml(task.taskDescription || "-")}
                             </td>
 
-                            <td>${escapeHtml(task.resourceName || "-")}</td>
+                            <td>
+                                <div class="person-name">
+                                    ${escapeHtml(task.resourceName || "-")}
+                                </div>
 
-                            <td>${escapeHtml(task.resourceLocation || "-")}</td>
+                                ${renderReportingManager(
+                                    task.reportingManagerName,
+                                    task.reportingManagerDesignation
+                                )}
+                            </td>
 
-                            <td>${PMS.badge(task.taskStatus)}</td>
+                            <td>
+                                ${escapeHtml(task.resourceLocation || "-")}
+                            </td>
 
-                            <td>${renderMiniProgress(task.taskProgressPercentage)}</td>
+                            <td>
+                                ${PMS.badge(task.taskStatus)}
+                            </td>
 
-                            <td>${escapeHtml(task.priority || "-")}</td>
+                            <td>
+                                ${renderMiniProgress(
+                                    task.taskProgressPercentage
+                                )}
+                            </td>
 
-                            <td>${task.escalated ? PMS.badge("ESCALATED") : "-"}</td>
+                            <td>
+                                ${escapeHtml(task.priority || "-")}
+                            </td>
+
+                            <td>
+                                ${task.escalated
+                                    ? PMS.badge("ESCALATED")
+                                    : "-"
+                                }
+                            </td>
 
                             <td>
                                 ${PMS.formatDate(task.startDate)}
-                                <div class="muted-small">to ${PMS.formatDate(task.endDate)}</div>
+                                <div class="muted-small">
+                                    to ${PMS.formatDate(task.endDate)}
+                                </div>
                             </td>
 
-                            <td>${formatNumber(task.allocatedHours)}</td>
-                            <td>${formatNumber(task.approvedHours)}</td>
-                            <td>${renderMoneyOrRestricted(task.plannedCost, task.plannedCost !== null && task.plannedCost !== undefined)}</td>
-                            <td>${renderMoneyOrRestricted(task.actualCost, task.actualCost !== null && task.actualCost !== undefined)}</td>
-                            <td>${renderMoneyOrRestricted(task.costVariance, task.costVariance !== null && task.costVariance !== undefined)}</td>
+                            <td>
+                                ${formatNumber(task.allocatedHours)}
+                            </td>
+
+                            <td>
+                                ${formatNumber(task.approvedHours)}
+                            </td>
+
+                            <td>
+                                ${renderMoneyOrRestricted(
+                                    task.plannedCost,
+                                    task.plannedCost !== null &&
+                                    task.plannedCost !== undefined
+                                )}
+                            </td>
+
+                            <td>
+                                ${renderMoneyOrRestricted(
+                                    task.actualCost,
+                                    task.actualCost !== null &&
+                                    task.actualCost !== undefined
+                                )}
+                            </td>
+
+                            <td>
+                                ${renderMoneyOrRestricted(
+                                    task.costVariance,
+                                    task.costVariance !== null &&
+                                    task.costVariance !== undefined
+                                )}
+                            </td>
                         </tr>
                     `).join("")}
                 </tbody>
@@ -519,22 +573,81 @@ function renderEscalatedTasks(tasks) {
 
     table.innerHTML = tasks.map(task => `
         <tr>
-            <td>${escapeHtml(task.taskCode || "-")}</td>
-            <td>${escapeHtml(task.taskName || "-")}</td>
-            <td>${escapeHtml(task.projectName || "-")}</td>
-            <td>${escapeHtml(task.resourceName || "-")}</td>
-            <td>${PMS.badge(task.escalationSeverity)}</td>
-            <td>${formatReasonType(task.escalationReasonType)}</td>
-            <td>${PMS.badge(task.escalationStatus)}</td>
-            <td>${PMS.formatDate(task.escalationDate)}</td>
+            <td>
+                ${escapeHtml(task.taskCode || "-")}
+            </td>
+
+            <td>
+                ${escapeHtml(task.taskName || "-")}
+            </td>
+
+            <td>
+                ${escapeHtml(task.projectName || "-")}
+            </td>
+
+            <td>
+                <div class="person-name">
+                    ${escapeHtml(task.resourceName || "-")}
+                </div>
+
+                ${renderReportingManager(
+                    task.reportingManagerName,
+                    task.reportingManagerDesignation
+                )}
+            </td>
+
+            <td>
+                ${PMS.badge(task.escalationSeverity)}
+            </td>
+
+            <td>
+                ${formatReasonType(task.escalationReasonType)}
+            </td>
+
+            <td>
+                ${PMS.badge(task.escalationStatus)}
+            </td>
+
+            <td>
+                ${PMS.formatDate(task.escalationDate)}
+            </td>
         </tr>
 
         <tr>
             <td colspan="8" class="muted-text">
-                <strong>Reason:</strong> ${escapeHtml(task.escalationReason || "-")}
+                <strong>Reason:</strong>
+                ${escapeHtml(task.escalationReason || "-")}
             </td>
         </tr>
     `).join("");
+}
+
+function renderReportingManager(
+    managerName,
+    managerDesignation
+) {
+    const safeName = managerName || "Not assigned";
+
+    const designation = managerDesignation
+        ? `
+            <span class="reporting-designation">
+                (${escapeHtml(managerDesignation)})
+            </span>
+        `
+        : "";
+
+    return `
+        <div class="reporting-line">
+            <span class="reporting-label">
+                Reports to:
+            </span>
+
+            <span>
+                ${escapeHtml(safeName)}
+                ${designation}
+            </span>
+        </div>
+    `;
 }
 
 function formatNumber(value) {

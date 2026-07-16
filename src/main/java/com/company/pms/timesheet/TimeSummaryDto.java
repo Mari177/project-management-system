@@ -15,6 +15,10 @@ public class TimeSummaryDto {
 
     private String resourceName;
 
+    private String reportingManagerName;
+
+    private String reportingManagerDesignation;
+
     private Double allocatedHours;
 
     private Double draftHours;
