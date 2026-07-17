@@ -10,6 +10,15 @@ const canViewProjectMembers = currentUser &&
 const canManageProjectMembers = currentUser &&
     ["ADMIN", "DELIVERY_HEAD", "DELIVERY_MANAGER"].includes(currentUser.role);
 
+const canViewProjectFiles = currentUser &&
+    ["ADMIN", "EXECUTIVE_VIEWER", "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL", "CLIENT_VIEWER"].includes(currentUser.role);
+
+const canUploadProjectFiles = currentUser &&
+    ["ADMIN", "DELIVERY_HEAD", "DELIVERY_MANAGER", "TL"].includes(currentUser.role);
+
+const canUploadConfidentialProjectFiles = currentUser &&
+    ["ADMIN", "DELIVERY_HEAD", "DELIVERY_MANAGER"].includes(currentUser.role);
+
 let projectsCache = [];
 let projectLookupCache = [];
 let projectPages = { IMPLEMENTATION: [], SUPPORT: [] };
@@ -22,6 +31,8 @@ let tlsCache = [];
 let resourcesCache = [];
 let selectedProjectForMembers = null;
 let projectMembersCache = [];
+let selectedProjectForFiles = null;
+let projectFilesCache = [];
 let currentProjectTab = "IMPLEMENTATION";
 
 initializeProjectsPage();
@@ -31,6 +42,7 @@ function initializeProjectsPage() {
     bindProjectForm();
     bindProjectMemberForm();
     bindMoveToSupportForm();
+    bindProjectFileUploadForm();
     bindCountryChange();
     bindProjectTypeChange();
     initializeProjectPagination();
@@ -176,6 +188,19 @@ function bindMoveToSupportForm() {
     form.addEventListener("submit", async function (event) {
         event.preventDefault();
         await submitMoveToSupport();
+    });
+}
+
+function bindProjectFileUploadForm() {
+    const form = document.getElementById("projectFileUploadForm");
+
+    if (!form) {
+        return;
+    }
+
+    form.addEventListener("submit", async function (event) {
+        event.preventDefault();
+        await uploadProjectFile();
     });
 }
 
@@ -465,7 +490,7 @@ function renderImplementationProjects(projects) {
     if (!projects || projects.length === 0) {
         table.innerHTML = `
             <tr>
-                <td colspan="13" class="empty-state">
+                <td colspan="14" class="empty-state">
                     No implementation projects found.
                 </td>
             </tr>
@@ -485,9 +510,10 @@ function renderImplementationProjects(projects) {
             <td>${escapeHtml(project.tlName || (project.tlUser ? project.tlUser.name : "-"))}</td>
             <td>${PMS.formatDate(project.startDate)}</td>
             <td>${PMS.formatDate(project.endDate)}</td>
-            <td>${PMS.badge(project.status)}</td>
-            <td>${renderMembersButton(project)}</td>
-            <td>${renderImplementationActions(project)}</td>
+<td>${PMS.badge(project.status)}</td>
+<td>${renderFilesButton(project)}</td>
+<td>${renderMembersButton(project)}</td>
+<td>${renderImplementationActions(project)}</td>
         </tr>
     `).join("");
 }
@@ -502,7 +528,7 @@ function renderSupportProjects(projects) {
     if (!projects || projects.length === 0) {
         table.innerHTML = `
             <tr>
-                <td colspan="14" class="empty-state">
+                <td colspan="15" class="empty-state">
                     No support projects found. Move a Go-Live/Post-Live implementation project to support.
                 </td>
             </tr>
@@ -525,12 +551,25 @@ function renderSupportProjects(projects) {
                 <td>${escapeHtml(formatLabel(project.supportCoverage || "-"))}</td>
                 <td>${escapeHtml(formatLabel(project.billingModel || "-"))}</td>
                 <td>${PMS.formatDate(project.supportEndDate || project.endDate)}</td>
-                <td>${PMS.badge(project.supportStatus || project.status || "ACTIVE")}</td>
-                <td>${renderMembersButton(project)}</td>
-                <td>${renderSupportActions(project)}</td>
+<td>${PMS.badge(project.supportStatus || project.status || "ACTIVE")}</td>
+<td>${renderFilesButton(project)}</td>
+<td>${renderMembersButton(project)}</td>
+<td>${renderSupportActions(project)}</td>
             </tr>
         `;
     }).join("");
+}
+
+function renderFilesButton(project) {
+    if (!canViewProjectFiles) {
+        return "-";
+    }
+
+    return `
+        <button class="action-link" onclick="openProjectFiles(${project.id})">
+            Files
+        </button>
+    `;
 }
 
 function renderMembersButton(project) {
@@ -685,6 +724,252 @@ async function submitMoveToSupport() {
     }
 }
 
+async function openProjectFiles(projectId) {
+    const project = projectsCache.find(item => item.id === projectId)
+        || projectLookupCache.find(item => item.id === projectId);
+
+    if (!project) {
+        alert("Project not found");
+        return;
+    }
+
+    selectedProjectForFiles = project;
+    document.getElementById("fileProjectId").value = project.id;
+    document.getElementById("projectFilesSubtitle").innerText =
+        `${project.projectCode || ""} ${project.projectName || "Project"}`.trim();
+
+    configureProjectFileUploadArea();
+    document.getElementById("projectFilesModal").classList.remove("hidden");
+    document.body.classList.add("modal-open");
+
+    await loadProjectFiles(project.id);
+}
+
+function closeProjectFilesModal() {
+    document.getElementById("projectFilesModal").classList.add("hidden");
+    document.body.classList.remove("modal-open");
+    selectedProjectForFiles = null;
+    projectFilesCache = [];
+    renderProjectFiles([]);
+}
+
+function handleProjectFilesBackdrop(event) {
+    if (event.target && event.target.id === "projectFilesModal") {
+        closeProjectFilesModal();
+    }
+}
+
+function configureProjectFileUploadArea() {
+    toggleElement("projectFileUploadWrapper", Boolean(canUploadProjectFiles));
+
+    const confidentialOption = document.getElementById("confidentialVisibilityOption");
+    const visibilitySelect = document.getElementById("projectFileVisibility");
+
+    if (confidentialOption) {
+        confidentialOption.hidden = !canUploadConfidentialProjectFiles;
+    }
+
+    if (visibilitySelect && !canUploadConfidentialProjectFiles) {
+        visibilitySelect.value = "NORMAL";
+    }
+
+    const form = document.getElementById("projectFileUploadForm");
+    if (form) {
+        form.reset();
+    }
+}
+
+async function loadProjectFiles(projectId) {
+    const table = document.getElementById("projectFilesTable");
+
+    if (table) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">Loading files...</td>
+            </tr>
+        `;
+    }
+
+    try {
+        projectFilesCache = await PMS.apiGet(`/api/projects/${projectId}/files`) || [];
+        renderProjectFiles(projectFilesCache);
+    } catch (error) {
+        PMS.showError(error);
+    }
+}
+
+function renderProjectFiles(files) {
+    const table = document.getElementById("projectFilesTable");
+
+    if (!table) {
+        return;
+    }
+
+    if (!selectedProjectForFiles) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">Select a project to view files.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    if (!files || files.length === 0) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="7" class="empty-state">No files uploaded for this project yet.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    table.innerHTML = files.map(file => `
+        <tr>
+            <td>
+                <strong>${escapeHtml(file.originalFileName || "-")}</strong>
+                <div class="muted-small">${escapeHtml(file.contentType || "file")}</div>
+            </td>
+            <td>${renderFileVisibility(file.visibility)}</td>
+            <td>${escapeHtml(file.description || "-")}</td>
+            <td>
+                ${escapeHtml(file.uploadedByName || "-")}
+                <div class="muted-small">${escapeHtml(formatLabel(file.uploadedByRole || ""))}</div>
+            </td>
+            <td>${formatDateTime(file.uploadedAt)}</td>
+            <td>${formatFileSize(file.fileSizeBytes)}</td>
+            <td>
+                <button class="action-link" onclick="downloadProjectFile(${file.id})">Download</button>
+                ${file.canDelete ? `<button class="action-link danger" onclick="deleteProjectFile(${file.id})">Delete</button>` : ""}
+            </td>
+        </tr>
+    `).join("");
+}
+
+async function uploadProjectFile() {
+    if (!selectedProjectForFiles) {
+        alert("Please select a project first.");
+        return;
+    }
+
+    const fileInput = document.getElementById("projectFileInput");
+
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        alert("Please choose a file.");
+        return;
+    }
+
+    const visibility = document.getElementById("projectFileVisibility").value || "NORMAL";
+
+    if (visibility === "CONFIDENTIAL" && !canUploadConfidentialProjectFiles) {
+        alert("Only Admin, Delivery Head and Delivery Manager can upload confidential files.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+    formData.append("visibility", visibility);
+    formData.append("description", document.getElementById("projectFileDescription").value || "");
+
+    try {
+        await apiPostMultipart(`/api/projects/${selectedProjectForFiles.id}/files`, formData);
+        document.getElementById("projectFileUploadForm").reset();
+
+        if (!canUploadConfidentialProjectFiles) {
+            document.getElementById("projectFileVisibility").value = "NORMAL";
+        }
+
+        await loadProjectFiles(selectedProjectForFiles.id);
+        PMS_UI?.toast?.("File uploaded successfully.", "success");
+    } catch (error) {
+        PMS.showError(error);
+    }
+}
+
+function downloadProjectFile(fileId) {
+    window.open(`/api/projects/files/${fileId}/download`, "_blank");
+}
+
+async function deleteProjectFile(fileId) {
+    const confirmed = confirm("Delete this project file?");
+
+    if (!confirmed || !selectedProjectForFiles) {
+        return;
+    }
+
+    try {
+        await PMS.apiDelete(`/api/projects/files/${fileId}`);
+        await loadProjectFiles(selectedProjectForFiles.id);
+        PMS_UI?.toast?.("File deleted successfully.", "success");
+    } catch (error) {
+        PMS.showError(error);
+    }
+}
+
+async function apiPostMultipart(url, formData) {
+    const response = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+    });
+
+    return readRawApiResponse(response);
+}
+
+async function readRawApiResponse(response) {
+    const responseText = await response.text();
+    let payload = null;
+
+    if (responseText) {
+        try {
+            payload = JSON.parse(responseText);
+        } catch (error) {
+            payload = responseText;
+        }
+    }
+
+    if (!response.ok) {
+        const message = payload && typeof payload === "object"
+            ? payload.message || payload.detail || payload.error || `Request failed with status ${response.status}`
+            : payload || `Request failed with status ${response.status}`;
+
+        throw new Error(message);
+    }
+
+    return payload;
+}
+
+function renderFileVisibility(visibility) {
+    const normalized = String(visibility || "NORMAL").toUpperCase();
+
+    if (normalized === "CONFIDENTIAL") {
+        return `<span class="badge badge-danger">Confidential</span>`;
+    }
+
+    return `<span class="badge badge-info">Normal</span>`;
+}
+
+function formatFileSize(sizeBytes) {
+    const size = Number(sizeBytes || 0);
+
+    if (size < 1024) {
+        return `${size} B`;
+    }
+
+    if (size < 1024 * 1024) {
+        return `${(size / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateTime(value) {
+    if (!value) {
+        return "-";
+    }
+
+    return new Date(value).toLocaleString("en-IN");
+}
+
 function openSupportTickets(projectId) {
     window.location.href = `/support-tickets?projectId=${projectId}`;
 }
@@ -787,14 +1072,13 @@ function renderProjectMembers(members) {
                 <td>${PMS.formatDate(member.startDate)}</td>
                 <td>${PMS.formatDate(member.endDate)}</td>
                 <td>${member.active ? PMS.badge("ACTIVE") : PMS.badge("INACTIVE")}</td>
-                ${
-                    canManageProjectMembers
-                        ? `<td>
+                ${canManageProjectMembers
+                ? `<td>
                             <button class="action-link" onclick="editProjectMember(${member.id})">Edit</button>
                             <button class="action-link danger" onclick="deleteProjectMember(${member.id})">Delete</button>
                            </td>`
-                        : `<td class="hidden"></td>`
-                }
+                : `<td class="hidden"></td>`
+            }
             </tr>
         `;
     }).join("");
@@ -996,3 +1280,8 @@ window.editProjectMember = editProjectMember;
 window.deleteProjectMember = deleteProjectMember;
 window.resetProjectMemberForm = resetProjectMemberForm;
 window.openSupportTickets = openSupportTickets;
+window.openProjectFiles = openProjectFiles;
+window.closeProjectFilesModal = closeProjectFilesModal;
+window.handleProjectFilesBackdrop = handleProjectFilesBackdrop;
+window.downloadProjectFile = downloadProjectFile;
+window.deleteProjectFile = deleteProjectFile;

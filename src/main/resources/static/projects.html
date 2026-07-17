@@ -210,6 +210,7 @@
                                     <th>Start Date</th>
                                     <th>End Date</th>
                                     <th>Status</th>
+                                    <th>Files</th>
                                     <th>Members</th>
                                     <th id="projectActionHeader">Action</th>
                                 </tr>
@@ -236,6 +237,7 @@
                                     <th>Billing</th>
                                     <th>Support End</th>
                                     <th>Status</th>
+                                    <th>Files</th>
                                     <th>Members</th>
                                     <th>Action</th>
                                 </tr>
@@ -427,6 +429,80 @@
             </form>
         </div>
     </div>
+
+    <div id="projectFilesModal" class="support-modal-overlay hidden" onclick="handleProjectFilesBackdrop(event)">
+    <div class="support-modal-card project-files-modal-card" role="dialog" aria-modal="true">
+        <div class="support-modal-header">
+            <div>
+                <h3 class="support-modal-title">Project Files</h3>
+                <div class="support-modal-subtitle" id="projectFilesSubtitle">
+                    Upload and view project documents.
+                </div>
+            </div>
+            <button class="support-modal-close" type="button" onclick="closeProjectFilesModal()">&times;</button>
+        </div>
+
+        <div class="support-modal-body">
+            <input type="hidden" id="fileProjectId">
+
+            <div id="projectFileUploadWrapper" class="project-file-upload-box">
+                <form id="projectFileUploadForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>File</label>
+                            <input type="file" id="projectFileInput" required>
+                            <div class="muted-small">Maximum size: 10 MB. Executable/script files are blocked.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Visibility</label>
+                            <select id="projectFileVisibility">
+                                <option value="NORMAL">Normal - visible to project users/client</option>
+                                <option value="CONFIDENTIAL" id="confidentialVisibilityOption">Confidential - leadership only</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group form-group-wide">
+                            <label>Description</label>
+                            <input type="text" id="projectFileDescription" maxlength="500"
+                                placeholder="Example: Signed BRD, UAT evidence, deployment checklist">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-primary" type="submit">Upload File</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="muted-small" id="projectFilesPolicyNote" style="margin: 12px 0;">
+                Normal files are visible to project users. Confidential files are visible only to Admin, Executive Viewer,
+                assigned Delivery Head and assigned Delivery Manager.
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Visibility</th>
+                            <th>Description</th>
+                            <th>Uploaded By</th>
+                            <th>Uploaded At</th>
+                            <th>Size</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectFilesTable">
+                        <tr>
+                            <td colspan="7" class="empty-state">Select a project to view files.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
     <script src="js/app.js"></script>
     <script src="js/projects.js"></script>

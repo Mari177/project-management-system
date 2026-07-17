@@ -2315,3 +2315,27 @@ body.modal-open {
         justify-content: center
     }
 }
+
+.project-files-modal-card {
+    width: min(1120px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+}
+
+.project-file-upload-box {
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: #f8fafc;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 12px;
+}
+
+.form-group-wide {
+    grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+    .form-group-wide {
+        grid-column: span 1;
+    }
+}
